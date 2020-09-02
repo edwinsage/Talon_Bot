@@ -67,10 +67,11 @@ my %cfg = (
 	port  => 6697,
 	user  => 'Invalid!',
 	auth  => 'Invalid!',
+	channel => 'Invalid!',
 	rules => 'No rules. | Just right.',
 	width => '25',
-	bot_color => '#8A2BE2',
-	user_color => '#BBBBBB',
+	bot_color => '8A2BE2',
+	user_color => 'BBBBBB',
 	
 	helpfile => 'helptext'
 	);
@@ -389,9 +390,9 @@ sub term_out  {
 	
 	# Get user color.
 	my ( $cr, $cg, $cb ) = %$tag{color} =~ /#(..)(..)(..)/;
-	$cr = 'FF' unless defined $cr;
-	$cg = 'FF' unless defined $cg;
-	$cb = 'FF' unless defined $cb;
+	$cr = substr( $cfg{user_color}, 0, 2 ) unless defined $cr;
+	$cg = substr( $cfg{user_color}, 2, 2 ) unless defined $cg;
+	$cb = substr( $cfg{user_color}, 4, 2 ) unless defined $cb;
 	
 	# Decimal conversion
 	$cr = hex $cr;
@@ -413,7 +414,7 @@ sub term_out  {
 sub chat  {
 	my ( $msg ) = @_;
 	say $sock "PRIVMSG $cfg{channel} :$msg";
-	&term_out( $cfg{user}, { color => $cfg{bot_color}, badges => 'moderator' }, $msg );
+	&term_out( $cfg{user}, { color => "#$cfg{bot_color}", badges => 'moderator' }, $msg );
 	print LOG "$time $cfg{user}: $msg\n" if $cfg{chatlog};
 	}
 

@@ -1,8 +1,58 @@
-user = Talon2Bot
-auth = beepboop
-channel = #Talon2Bot
-chatlog = chat.log
-rawlog = raw.log
-rules = No rules | Just right
-bot_color = #8A2BE2
-user_color = #BBBBBB
+# Settings for Talon_Bot
+# Defaults are shown.  To run, user and auth must be set.
+# Other options may be uncommented and changed.
+
+
+#########################
+##  Essential Config!  ##
+#########################
+
+# Talon_Bot requires a Twitch user to log in as.
+user = Invalid!
+
+# Twitch OAuth token.
+auth = Invalid!
+
+
+
+#############
+##  Files  ##
+#############
+
+# Log file to save all chat messages to.
+#chatlog = 
+
+# Log file for raw IRC traffic.  Useful for debugging.
+#rawlog = 
+
+# File containing help text for commands.
+# See docs/helpfile for details.
+#helpfile = helptext
+
+
+
+#####################
+##  Other Options  ##
+#####################
+
+# Channel rules.  **Change this to a file**
+#rules = No rules | Just right
+
+# Specify the Twitch chat channel to connect to.
+# Default is to match the username.
+#channel = 
+
+# Width of terminal output.
+#width = 25
+
+# Default color for bot messages on terminal output.
+#bot_color = 8A2BE2
+
+# Default color for user messages on terminal output.
+# Overridden if the user has set a color.
+#user_color = BBBBBB
+
+# Host and port of the Twitch IRC server.
+# These should not need changing.
+#host  = irc.chat.twitch.tv
+#port = 6697
