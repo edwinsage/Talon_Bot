@@ -12,7 +12,7 @@ Set the string that will be printed when the !id command is used.
 
 &&
 
-!rule
+!rule !rules
 Usage: !rule <number>
 Shows the rules of the channel. 
  Must be followed by the rule number.

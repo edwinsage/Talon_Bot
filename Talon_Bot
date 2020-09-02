@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#use strict;
-#use warnings;
 use v5.20;
 
 use IO::Socket::SSL;
@@ -59,14 +57,12 @@ GetOptions( "test|t" => \$fake,
 $config_file = '.Talon_Bot.rc' unless $config_file;
 
 
-
 # Set config defaults.
 my %cfg = (
 	host  => 'irc.chat.twitch.tv',
-	port  => 6697,
+	port  => '6697',
 	user  => 'Invalid!',
 	auth  => 'Invalid!',
-	channel => 'Invalid!',
 	rules => 'No rules. | Just right.',
 	width => '25',
 	bot_color => '8A2BE2',
@@ -77,21 +73,19 @@ my %cfg = (
 
 
 # Read config from file.
-
 open ( FILE, $config_file ) or die "Could not find $config_file";
 while (<FILE>)  {
-	next if /^\s*#/;
-	next if /^\s*$/;
+	# Skip comments and blank lines
+	next if ( /^\s*#/ or /^\s*$/ );
 	chomp;
-	# Remove trailing spaces
-	s/\s+$//;
-	# Remove leading spaces
-	s/^\s+//;
+	# Remove leading and trailing spaces
+	s/^\s*(.*?)\s*/$1/;
 	die "Config file error: line $_ unparseable.\n" unless /=/;
 	my ( $key, $value ) = split /\s*=\s*/;
 	$cfg{$key} = $value;
 	}
 close FILE;
+
 
 # Check essential options
 unless ($fake)  {
@@ -99,16 +93,13 @@ unless ($fake)  {
 	die "'auth' not set in $config_file!" if ( $cfg{auth} eq 'Invalid!' );
 	}
 
+
 # Handle channel name
 $cfg{channel} = $cfg{user} unless $cfg{channel};
 $cfg{channel} = '#' . $cfg{channel} unless ( $cfg{channel} =~ /^#/ );
 
 
-$columns = $cfg{width};
-my @rules = split ( /\s*\|\s*/, $cfg{rules} );
-
-
-# Open log files, if specified.
+# Open log files, if configured.
 if ( $cfg{rawlog} )  {
 	open ( RAWLOG, ">>", $cfg{rawlog} )
 	  or die "Could not open $cfg{rawlog} for appending.";
@@ -119,6 +110,7 @@ if ( $cfg{chatlog} )  {
 	  or die "Could not open $cfg{chatlog} for appending.";
 	LOG->autoflush(1);
 	}
+
 
 # Load help file.
 open ( HELP, "<", $cfg{helpfile} ) or die "Could not open help file $cfg{helpfile}.";
@@ -152,6 +144,12 @@ while ( <HELP> )  {
 	@shlorp = ();
 	
 	}
+
+
+# Set up other variables.
+$columns = $cfg{width};
+my @rules = split ( /\s*\|\s*/, $cfg{rules} );
+
 
 # Command list
 my %command = (
@@ -291,9 +289,9 @@ while ( <$sock> )  {
 
 
 
-###################
-##  Subroutines  ##
-###################
+################
+##  Commands  ##
+################
 
 sub units  {
 	
@@ -302,7 +300,6 @@ sub units  {
 	# Does it just list the commands?
 	
 	}
-
 
 
 sub id  {
@@ -379,6 +376,9 @@ sub rule  {
 
 
 
+#######################
+##  Other Functions  ##
+#######################
 
 
 sub term_out  {
@@ -407,9 +407,6 @@ sub term_out  {
 	}
 
 
-
-
-
 sub chat  {
 	my ( $msg ) = @_;
 	say $sock "PRIVMSG $cfg{channel} :$msg";
@@ -431,7 +428,6 @@ sub admin_test  {
 	return 1 if ( %$tag{badges} =~ /(broadcaster|moderator)/ );
 	return 0;
 	}
-
 
 
 sub timestamp  {
@@ -461,4 +457,3 @@ sub logoff  {
 		  or warn "Could not close $cfg{chatlog}.";
 		}
 	}
-
