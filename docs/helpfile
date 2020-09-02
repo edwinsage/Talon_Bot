@@ -1,0 +1,13 @@
+The helpfile is formatted as follows.  Help entries are contained in blocks,
+ each block separated by a line starting with two ampersands. 
+ Blank lines or lines containing only whitespace are ignored. 
+ Within a block, the first line should be simply the command with
+ exclamation point prefixed; if there are aliases for the command,
+ they should be on the same line, separated by whitespace. 
+ Further lines after the first will be sent to the user as-is
+ when they request help for the named command.
+
+The exception is a line containing only a + sign, which is used
+ to separate extra help output intended for priveliged users,
+ such as moderators, who have additional options when using some commands.
+

@@ -1,0 +1,464 @@
+#!/usr/bin/perl
+
+# Talon_Bot, a multipurpose bot for Twitch chat
+# Version 0.0.0-alpha, Still-in-the-palace edition
+# Copyright 2020 Michael Pirkola
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+#use strict;
+#use warnings;
+use v5.20;
+
+use IO::Socket::SSL;
+use Text::Wrap qw(wrap $columns);
+use Getopt::Long;
+
+# This is how to run this program!
+sub usage  {
+	print <<"END_HELP";
+Usage:
+ $0 [options]
+
+$0 is a multipurpose bot for Twitch chat.
+
+Options:
+    -h   --help         Print this help text
+    -c   --config       Specify a config file other than .Talon_Bot.rc
+    -t   --test         Don't actually connect to Twitch, just run interactively
+
+END_HELP
+#'# <- Fix syntax highlighting.
+	exit;
+	}
+
+
+##############
+##  Config  ##
+##############
+
+# Getopts variables
+Getopt::Long::Configure("bundling");
+my ( $config_file, $fake );
+
+GetOptions( "test|t" => \$fake,
+	    "config|c=s" => \$config_file,
+	    "help|h" => \&usage
+	    );
+
+$config_file = '.Talon_Bot.rc' unless $config_file;
+
+
+
+# Set config defaults.
+my %cfg = (
+	host  => 'irc.chat.twitch.tv',
+	port  => 6697,
+	user  => 'Invalid!',
+	auth  => 'Invalid!',
+	rules => 'No rules. | Just right.',
+	width => '25',
+	bot_color => '#8A2BE2',
+	user_color => '#BBBBBB',
+	
+	helpfile => 'helptext'
+	);
+
+
+# Read config from file.
+
+open ( FILE, $config_file ) or die "Could not find $config_file";
+while (<FILE>)  {
+	next if /^\s*#/;
+	next if /^\s*$/;
+	chomp;
+	# Remove trailing spaces
+	s/\s+$//;
+	# Remove leading spaces
+	s/^\s+//;
+	die "Config file error: line $_ unparseable.\n" unless /=/;
+	my ( $key, $value ) = split /\s*=\s*/;
+	$cfg{$key} = $value;
+	}
+close FILE;
+
+# Check essential options
+unless ($fake)  {
+	die "'user' not set in $config_file!" if ( $cfg{user} eq 'Invalid!' );
+	die "'auth' not set in $config_file!" if ( $cfg{auth} eq 'Invalid!' );
+	}
+
+# Handle channel name
+$cfg{channel} = $cfg{user} unless $cfg{channel};
+$cfg{channel} = '#' . $cfg{channel} unless ( $cfg{channel} =~ /^#/ );
+
+
+$columns = $cfg{width};
+my @rules = split ( /\s*\|\s*/, $cfg{rules} );
+
+
+# Open log files, if specified.
+if ( $cfg{rawlog} )  {
+	open ( RAWLOG, ">>", $cfg{rawlog} )
+	  or die "Could not open $cfg{rawlog} for appending.";
+	RAWLOG->autoflush(1);
+	}
+if ( $cfg{chatlog} )  {
+	open ( LOG, ">>", $cfg{chatlog} )
+	  or die "Could not open $cfg{chatlog} for appending.";
+	LOG->autoflush(1);
+	}
+
+# Load help file.
+open ( HELP, "<", $cfg{helpfile} ) or die "Could not open help file $cfg{helpfile}.";
+my %help;
+my @shlorp;
+while ( <HELP> )  {
+	# Ignore blank lines.
+	next if /^\s*$/;
+	push ( @shlorp, $_ );
+	
+	# Get one block at a time.
+	next unless /^\&\&/;
+	
+	# Get rid of the ampersands.
+	pop @shlorp;
+	
+	# First line should be the command(s).
+	my $line = shift @shlorp;
+	my @keys = split ( /\s+/, $line );
+	
+	# Check and make sure something isn't obviously wrong.
+	foreach ( @keys )  {
+		die "Error parsing help file: $_ is not a proper command." unless /^!\w+$/;
+		s/!//;
+		
+		}
+	
+	# Add lines to help text.
+	my @temp = @shlorp;
+	$help{"$_"} = \@temp foreach @keys;
+	@shlorp = ();
+	
+	}
+
+# Command list
+my %command = (
+	units => \&units,
+	arena => \&id,
+	id => \&id,
+	rules => \&rule,
+	rule => \&rule,
+	
+	help => \&help
+	);
+
+
+
+
+##################
+##  Connection  ##
+##################
+
+my $sock;
+unless ($fake)  {
+	# Using SSL, because PLAINTEXT BAD
+	$sock = IO::Socket::SSL->new("$cfg{host}:$cfg{port}") or die "Can't open socket: $@";
+	
+	
+	say 'Logging in.';
+	say $sock "PASS oauth:$cfg{auth}";
+	say $sock "NICK $cfg{user}";
+	say $sock "JOIN $cfg{channel}";
+	
+	say 'Looking for ACK.';
+	my $first = <$sock>;
+	say "$first YEAH!";
+	die unless ( $first =~ /Welcome/ );
+	
+	say 'ACK received.';
+	say $sock 'CAP REQ :twitch.tv/membership twitch.tv/tags twitch.tv/commands';
+	}
+else  {
+	say 'Running in test mode, not connecting to Twitch...';
+	use WrapHandles;
+	use Symbol;
+	$sock = gensym;
+	tie *$sock, 'WrapHandles', \*STDIN, \*STDOUT;
+	
+	}
+
+# Signal handling, for clean exiting.
+$SIG{INT}  = \&signal_handler;
+$SIG{TERM}  = \&signal_handler;
+
+
+# Move login output offscreen
+print "\n" x 25;
+
+
+# Make time global.
+my $time;
+
+
+
+
+
+
+#################
+##  Main Loop  ##
+#################
+
+while ( <$sock> )  {
+	if ( /^PING :tmi.twitch.tv/ )  {
+		say $sock 'PONG :tmi.twitch.tv';
+		next;
+		}
+	$time = &timestamp;
+	
+	
+	#print;
+	print RAWLOG "$time $_" if $cfg{rawlog};
+	
+	# Parse received messages.   (@tag1=;tag2=meep ):(user)!user@user.tmi.twitch.tv  (PRIVMSG) #chan        ' :' (msg)
+	my ( $tags, $user, $cmd, $msg ) = /^(@.*? )?:(?:(\w+)!)?(?:\w+@\w+.)?tmi.twitch.tv (\w+) $cfg{channel}(?: :)?(.*)?\r\n/;
+	
+	# Easy CLI testing version:
+	if ($fake)  {
+		$tags = '@badges=broadcaster;color=#FF0000;display-name=TESTING;fake=yup';
+		$cmd = "PRIVMSG";
+		$user = "$cfg{user}";
+		$msg = $_;
+		}
+	
+	# Parse tags.
+	$tags =~ s/^@//;
+	my @tags = split /;/, $tags;
+	my %tag;
+	foreach ( @tags )  {
+		# Remove trailing spaces
+		s/\s+$//;
+		# Remove leading spaces
+		s/^\s+//;
+		unless ( /=/ )  {
+			say STDERR "Tag parsing error: $_ unparseable.";
+			next;
+			}
+		my ( $key, $value ) = split /\s*=\s*/;
+		$tag{$key} = $value;
+		}
+	
+	if ( $cmd eq 'PRIVMSG' )  {
+		# Print message.
+		&term_out( $user, \%tag, $msg );
+		
+		# Log chat messages.
+		print LOG "$time $user: $msg\n" if $cfg{chatlog};
+		#say "Message: $msg";
+		# Look for a command.
+		if ( $msg =~ /^!(\w+)\s*(\S.*)?/ )  {
+			my ( $c, $args ) = ($1, $2);
+			#say $c, $args;
+			$c =~ tr/A-Z/a-z/;
+			# Execute command if it is in the list.
+			&{$command{$c}}( $user, \%tag, $args ) if ( exists($command{$c}) );
+			}
+		
+		
+		
+		}
+	
+	
+	
+	}
+
+
+
+&logoff;
+
+
+
+
+
+###################
+##  Subroutines  ##
+###################
+
+sub units  {
+	
+	# Totally haven't done this yet.
+	
+	# Does it just list the commands?
+	
+	}
+
+
+
+sub id  {
+	my ( $user, $tag, $args ) = @_;
+	# Only admin uses args.
+	#say( $user, $tag, $args );
+	
+	if ( $args and &admin_test($tag) )  {
+		
+		if ( $args =~ /^unset/ )  {
+			$cfg{id} = undef;
+			&chat('ID unset.');
+			return;
+			}
+		
+		my ( $id ) = $args =~ /^set (.+)$/;
+		if ( length($id) >= 5 )  {
+			$cfg{id} = $id;
+			&chat("ID: $cfg{id}");
+			return;
+			}
+		# Bad command
+		&chat("Could not set ID to $args: bad format.");
+		return;
+		}
+	# Check for an ID being set
+	unless ( $cfg{id} )  {
+		&chat('No arena ID set.');
+		return;
+		}
+	
+	# The actual command result:
+	&chat("Arena ID: $cfg{id}");
+	
+	}
+
+
+sub help  {
+	my ( $user, $tag, $args ) = @_;
+	# Get rid of ! if needed.
+	$args =~ s/^\!//;
+	
+	
+	# Default help
+	unless ( $help{$args} )  {
+		#!# Find a better way to list commands.
+		&chat("Available commands: !help, !id, !rule, !units.  "
+		    . "For more information on a specific command, type '!help [command]'.");
+		}
+	else  {
+		foreach ( @{$help{$args}} )  {
+			if (/^\+/)  {
+				# Either skip the +, or end.
+				if ( !&admin_test($tag) )  { next; }
+				else  { return; }
+				}
+			&chat($_);
+			}
+		}
+	return;
+	}
+
+
+sub rule  {
+	my ( $user, $tag, $args ) = @_;
+	unless ( $args =~ /^\d+$/ and $args <= @rules )  {
+		&chat( "Invalid rule number." );
+		return;
+		}
+	
+	&chat("Rule $args: @rules[$args - 1]");
+	}
+
+
+
+
+
+
+sub term_out  {
+	my ( $user, $tag, $msg ) = @_;
+	my $status;
+	# Check for mod status
+	$status = '*' if &admin_test($tag);
+	
+	# Get user color.
+	my ( $cr, $cg, $cb ) = %$tag{color} =~ /#(..)(..)(..)/;
+	$cr = 'FF' unless defined $cr;
+	$cg = 'FF' unless defined $cg;
+	$cb = 'FF' unless defined $cb;
+	
+	# Decimal conversion
+	$cr = hex $cr;
+	$cg = hex $cg;
+	$cb = hex $cb;
+	
+	# Wrap message text
+	$msg = wrap(' ', ' ', $msg);
+	
+	# Print message.
+	#print '\033[38;2;' . "$cr;$cg;${cb}m$user" . '\033[0m: ' . "$msg\n";
+	print "$status\e[38;2;$cr;$cg;${cb}m$user\e[0m:\n$msg\n";
+	}
+
+
+
+
+
+sub chat  {
+	my ( $msg ) = @_;
+	say $sock "PRIVMSG $cfg{channel} :$msg";
+	&term_out( $cfg{user}, { color => $cfg{bot_color}, badges => 'moderator' }, $msg );
+	print LOG "$time $cfg{user}: $msg\n" if $cfg{chatlog};
+	}
+
+
+sub whisper  {
+	my ( $user, $msg ) = @_;
+	say $sock "PRIVMSG $cfg{channel} :/w $user $msg";
+	#&term_out( $cfg{user}, { color => '#8A2BE2', badges => 'moderator' }, $msg );
+	print LOG "$time $cfg{user}: /w $user $msg\n" if $cfg{chatlog};
+	}
+
+
+sub admin_test  {
+	my ($tag) = @_;
+	return 1 if ( %$tag{badges} =~ /(broadcaster|moderator)/ );
+	return 0;
+	}
+
+
+
+sub timestamp  {
+	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
+	return sprintf ( "%d\.%02d.%02d-%02d:%02d:%02d", ($year + 1900, $mon + 1, $mday, $hour, $min, $sec) );
+	}
+
+
+sub signal_handler  {
+	say 'Logging off.';
+	say $sock 'QUIT';
+	&logoff;
+	exit;
+	}
+
+
+sub logoff  {
+	$sock->close();
+	if ( $cfg{rawlog} )  {
+		print RAWLOG"\n--\n\n";
+		close RAWLOG
+		  or warn "Could not close $cfg{rawlog}.";
+		}
+	if ( $cfg{chatlog} )  {
+		print LOG"\n--\n\n";
+		close LOG
+		  or warn "Could not close $cfg{chatlog}.";
+		}
+	}
+

@@ -1,0 +1,8 @@
+user = Talon2Bot
+auth = beepboop
+channel = #Talon2Bot
+chatlog = chat.log
+rawlog = raw.log
+rules = No rules | Just right
+bot_color = #8A2BE2
+user_color = #BBBBBB
