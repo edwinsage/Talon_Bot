@@ -158,6 +158,7 @@ my %command = (
 	id => \&id,
 	rules => \&rule,
 	rule => \&rule,
+	vote => \&vote,
 	
 	help => \&help
 	);
@@ -371,6 +372,74 @@ sub rule  {
 		}
 	
 	&chat("Rule $args: @rules[$args - 1]");
+	}
+
+
+sub vote  {
+	my ( $user, $tag, $args ) = @_;
+	# Handle creating a poll
+	if ( &admin_test($tag) and $args =~ /^new (.*)/i )  {
+		# Set the poll prompt
+		$cfg{poll} = $1;
+		# Blank the votes
+		$cfg{votes} = {};
+		return;
+		}
+	# Handle ending a poll
+	if ( &admin_test($tag) and $args =~ /^(end|stop)$/i )  {
+		# Reset results
+		$cfg{results} = {};
+		
+		# Stash the prompt
+		$cfg{result} = $cfg{poll};
+		
+		# Tally votes
+		foreach ( values %{$cfg{votes}} )  {
+			my @raw = split /\s+/;
+			# Check for duplicates
+			my @votes;
+			foreach (@raw)  {
+				# Cap the value so the array doesn't get stupidly large
+				next if ( $_ > 100 );
+				$votes[$_]++;
+				}
+			for (my $i = 1; $i <= @votes; $i++)  {
+				${$cfg{results}}{$i}++ if $votes[$i];
+				#say @{$cfg{results}} . 'erf';
+				}
+			
+			}
+		
+		&chat('Voting closed.');
+		return;
+		}
+	# Handle displaying results
+	if ( &admin_test($tag) and $args =~ /^result(s)?$/i )  {
+		&chat($cfg{result});
+		my @ranking = sort { ${$cfg{results}}{$b} <=> ${$cfg{results}}{$a} } keys %{$cfg{results}};
+		&chat("Choice $_: ${cfg{results}{$_}}") foreach @ranking;
+		return;
+		}
+	
+	# Only numbers and spaces allowed
+	unless ( $args =~ /^[\d\s]*$/ )  {
+		&chat("Votes must only consist of numbers, separated by spaces.");
+		return;
+		}
+	
+	# Store votes by user, to allow easy changing.
+	$cfg{votes}{$user} = $args;
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	}
 
 

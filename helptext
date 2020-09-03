@@ -40,3 +40,6 @@ Does it?  Does the bot care what the options are?
 
 Advanced Usage: !vote end
 End voting on the current poll.
+
+Advanced Usage: !vote results
+Display the results of the last completed poll.
