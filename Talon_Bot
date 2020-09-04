@@ -18,6 +18,7 @@
 
 use v5.20;
 
+use lib './';
 use IO::Socket::SSL;
 use Text::Wrap qw(wrap $columns);
 use Getopt::Long;
@@ -347,7 +348,7 @@ sub help  {
 	# Default help
 	unless ( $help{$args} )  {
 		#!# Find a better way to list commands.
-		&chat("Available commands: !help, !id, !rule, !units.  "
+		&chat("Available commands: !help, !id, !rule, !units, !vote.  "
 		    . "For more information on a specific command, type '!help [command]'.");
 		}
 	else  {
@@ -405,11 +406,11 @@ sub vote  {
 				}
 			for (my $i = 1; $i <= @votes; $i++)  {
 				${$cfg{results}}{$i}++ if $votes[$i];
-				#say @{$cfg{results}} . 'erf';
 				}
 			
 			}
 		
+		$cfg{poll} = '';
 		&chat('Voting closed.');
 		return;
 		}
@@ -418,6 +419,22 @@ sub vote  {
 		&chat($cfg{result});
 		my @ranking = sort { ${$cfg{results}}{$b} <=> ${$cfg{results}}{$a} } keys %{$cfg{results}};
 		&chat("Choice $_: ${cfg{results}{$_}}") foreach @ranking;
+		return;
+		}
+	
+	# That's all the admin commands
+	# If there is no current poll, stop here
+	unless ($cfg{poll})  {
+		&chat("No current poll.");
+		return;
+		}
+	
+	# Print the poll by default
+	unless ($args)  {
+		my $message = "Current poll: $cfg{poll}";
+		# Display current vote if user has voted.
+		$message .= " Current vote for $user: $cfg{votes}{$user}" if ($cfg{votes}{$user});
+		&chat($message);
 		return;
 		}
 	
