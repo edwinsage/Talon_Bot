@@ -18,6 +18,7 @@
 
 use v5.20;
 
+use lib './';
 use IO::Socket::SSL;
 use Text::Wrap qw(wrap $columns);
 use Getopt::Long;
@@ -158,6 +159,7 @@ my %command = (
 	id => \&id,
 	rules => \&rule,
 	rule => \&rule,
+	vote => \&vote,
 	
 	help => \&help
 	);
@@ -346,7 +348,7 @@ sub help  {
 	# Default help
 	unless ( $help{$args} )  {
 		#!# Find a better way to list commands.
-		&chat("Available commands: !help, !id, !rule, !units.  "
+		&chat("Available commands: !help, !id, !rule, !units, !vote.  "
 		    . "For more information on a specific command, type '!help [command]'.");
 		}
 	else  {
@@ -371,6 +373,90 @@ sub rule  {
 		}
 	
 	&chat("Rule $args: @rules[$args - 1]");
+	}
+
+
+sub vote  {
+	my ( $user, $tag, $args ) = @_;
+	# Handle creating a poll
+	if ( &admin_test($tag) and $args =~ /^new (.*)/i )  {
+		# Set the poll prompt
+		$cfg{poll} = $1;
+		# Blank the votes
+		$cfg{votes} = {};
+		return;
+		}
+	# Handle ending a poll
+	if ( &admin_test($tag) and $args =~ /^(end|stop)$/i )  {
+		# Reset results
+		$cfg{results} = {};
+		
+		# Stash the prompt
+		$cfg{result} = $cfg{poll};
+		
+		# Tally votes
+		foreach ( values %{$cfg{votes}} )  {
+			my @raw = split /\s+/;
+			# Check for duplicates
+			my @votes;
+			foreach (@raw)  {
+				# Cap the value so the array doesn't get stupidly large
+				next if ( $_ > 100 );
+				$votes[$_]++;
+				}
+			for (my $i = 1; $i <= @votes; $i++)  {
+				${$cfg{results}}{$i}++ if $votes[$i];
+				}
+			
+			}
+		
+		$cfg{poll} = '';
+		&chat('Voting closed.');
+		return;
+		}
+	# Handle displaying results
+	if ( &admin_test($tag) and $args =~ /^result(s)?$/i )  {
+		&chat($cfg{result});
+		my @ranking = sort { ${$cfg{results}}{$b} <=> ${$cfg{results}}{$a} } keys %{$cfg{results}};
+		&chat("Choice $_: ${cfg{results}{$_}}") foreach @ranking;
+		return;
+		}
+	
+	# That's all the admin commands
+	# If there is no current poll, stop here
+	unless ($cfg{poll})  {
+		&chat("No current poll.");
+		return;
+		}
+	
+	# Print the poll by default
+	unless ($args)  {
+		my $message = "Current poll: $cfg{poll}";
+		# Display current vote if user has voted.
+		$message .= " Current vote for $user: $cfg{votes}{$user}" if ($cfg{votes}{$user});
+		&chat($message);
+		return;
+		}
+	
+	# Only numbers and spaces allowed
+	unless ( $args =~ /^[\d\s]*$/ )  {
+		&chat("Votes must only consist of numbers, separated by spaces.");
+		return;
+		}
+	
+	# Store votes by user, to allow easy changing.
+	$cfg{votes}{$user} = $args;
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	}
 
 
