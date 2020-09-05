@@ -46,18 +46,6 @@ END_HELP
 ##  Config  ##
 ##############
 
-# Getopts variables
-Getopt::Long::Configure("bundling");
-my ( $config_file, $fake );
-
-GetOptions( "test|t" => \$fake,
-	    "config|c=s" => \$config_file,
-	    "help|h" => \&usage
-	    );
-
-$config_file = '.Talon_Bot.rc' unless $config_file;
-
-
 # Set config defaults.
 my %cfg = (
 	host  => 'irc.chat.twitch.tv',
@@ -72,6 +60,111 @@ my %cfg = (
 	helpfile => 'helptext'
 	);
 
+# Getopts variables
+Getopt::Long::Configure("bundling");
+my ( $config_file, $fake );
+
+GetOptions( "test|t" => \$fake,
+	    "config|c=s" => \$config_file,
+	    "help|h" => \&usage
+	    );
+
+# Let's locate our config file.
+# First priority is given to a command line argument.
+# If that's not specified, we have to start looking.
+unless ($config_file)  {
+	# First we check the working directory.
+	
+	# Make a list of places to check, until one is found.
+	my @configs = (
+	    '.Talon_Bot.rc',
+	    'Talon_Bot.rc',
+	    $ENV{'HOME'} . '/.Talon_Bot.rc',
+	    $ENV{'HOME'} . '/Talon_Bot.rc'
+	    );
+	
+	# Now loop until one exists.
+	my $found;
+	foreach (@configs)  {
+		if ( -e $_ )  {
+			$config_file = $_;
+			$found = 1;
+			say "Using config file $config_file.";
+			last;
+			}
+		}
+	# Create a new config file if none were found.
+	unless ($found)  {
+		# Pick the first choice.
+		$config_file = $configs[0];
+		say "Creating new config file $config_file.";
+		open( CONFIG, '>', $config_file ) or die "Could not find or create config file.";
+		print CONFIG <<"END_CONFIG";
+# Settings for Talon_Bot
+# Defaults are shown.  To run, user and auth must be set.
+# Other options may be uncommented and changed.
+
+
+#########################
+##  Essential Config!  ##
+#########################
+
+# Talon_Bot requires a Twitch user to log in as.
+user = $cfg{user}
+
+# Twitch OAuth token.
+auth = $cfg{auth}
+
+
+
+#############
+##  Files  ##
+#############
+
+# Log file to save all chat messages to.
+#chatlog = $cfg{chatlog}
+
+# Log file for raw IRC traffic.  Useful for debugging.
+#rawlog = $cfg{rawlog}
+
+# File containing help text for commands.
+# See docs/helpfile for details.
+#helpfile = $cfg{helpfile}
+
+
+
+#####################
+##  Other Options  ##
+#####################
+
+# Channel rules.  **Change this to a file**
+#rules = $cfg{rules}
+
+# Specify the Twitch chat channel to connect to.
+# Default is to match the username.
+#channel = $cfg{channel}
+
+# Width of terminal output.
+#width = $cfg{width}
+
+# Default color for bot messages on terminal output.
+#bot_color = $cfg{bot_color}
+
+# Default color for user messages on terminal output.
+# Overridden if the user has set a color.
+#user_color = $cfg{user_color}
+
+# Host and port of the Twitch IRC server.
+# These should not need changing.
+#host = $cfg{host}
+#port = $cfg{port}
+END_CONFIG
+		close CONFIG;
+		say "You will need to edit at least the user and " . 
+		    "auth lines to be able to connect to Twitch.";
+		}
+	
+	}
 
 # Read config from file.
 open ( FILE, $config_file ) or die "Could not find $config_file";
@@ -81,7 +174,7 @@ while (<FILE>)  {
 	chomp;
 	# Remove leading and trailing spaces
 	s/^\s*(.*?)\s*/$1/;
-	die "Config file error: line $_ unparseable.\n" unless /=/;
+	die "Config file error: line $_ unparseable in $config_file.\n" unless /=/;
 	my ( $key, $value ) = split /\s*=\s*/;
 	$cfg{$key} = $value;
 	}
