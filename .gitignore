@@ -1,5 +1,6 @@
 # Normal usage creates log files
 *.log
 
-# Created config file
+# Ignore config files
 .Talon_Bot.rc
+Talon_Bot.rc
