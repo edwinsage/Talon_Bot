@@ -1,0 +1,26 @@
+Talon_Bot - A simple Perl bot for Twitch
+----------------------------------------
+
+Talon_Bot is intended to be an extendable, hackable bot for Twitch chat.
+
+
+Features:
+
+* Several user commands
+
+* Can create timestamped logs of chats
+
+* An interactive help system
+
+
+Requirements:
+
+* A Twitch account, and an associated OAuth token as described in
+  https://dev.twitch.tv/docs/irc/guide
+
+* Perl, minimum v5.20.  This could be lowered with little effort if needed,
+  but for simplicity a non-ancient version is assumed.
+
+* A POSIX environment to run in - Talon_Bot has only been tested on Linux,
+  though it should presumably run well in other similar environments.
+
