@@ -1,8 +1,14 @@
 Things to do still:
 
 * Pick a format for helptext
+* Fix help command - usage line, and advanced text
+* !help vote: it says just type the number, not !vote #
+* acknowledge votes
+* vote count
 * Provide a namespace for commands to store data.
 ** Volatile and persistent?
+** Need to create persistent storage
+* Actually make a units command, include github link and other info
 
 
 Possible ideas for later:
@@ -11,3 +17,6 @@ Possible ideas for later:
 * Let commands specify regex for chat messages to be processed?
 ** !vote could handle bare numbers; "1" rather than "!vote 1"
 * Have main loop do a non-blocking check for input, to allow for timers
+
+
+
