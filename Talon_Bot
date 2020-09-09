@@ -243,6 +243,7 @@ while ( <HELP> )  {
 # Set up other variables.
 $columns = $cfg{width};
 my @rules = split ( /\s*\|\s*/, $cfg{rules} );
+my %vars;
 
 
 # Command list
@@ -398,22 +399,22 @@ sub units  {
 
 
 sub id  {
-	my ( $user, $tag, $args ) = @_;
+	my ( $user, $tags, $args ) = @_;
 	# Only admin uses args.
-	#say( $user, $tag, $args );
+	#say( $user, $tags, $args );
 	
-	if ( $args and &admin_test($tag) )  {
+	if ( $args and &admin_test($tags) )  {
 		
 		if ( $args =~ /^unset/ )  {
-			$cfg{id} = undef;
+			$vars{id} = undef;
 			&chat('ID unset.');
 			return;
 			}
 		
 		my ( $id ) = $args =~ /^set (.+)$/;
 		if ( length($id) >= 5 )  {
-			$cfg{id} = $id;
-			&chat("ID: $cfg{id}");
+			$vars{id} = $id;
+			&chat("ID: $vars{id}");
 			return;
 			}
 		# Bad command
@@ -421,19 +422,19 @@ sub id  {
 		return;
 		}
 	# Check for an ID being set
-	unless ( $cfg{id} )  {
+	unless ( $vars{id} )  {
 		&chat('No arena ID set.');
 		return;
 		}
 	
 	# The actual command result:
-	&chat("Arena ID: $cfg{id}");
+	&chat("Arena ID: $vars{id}");
 	
 	}
 
 
 sub help  {
-	my ( $user, $tag, $args ) = @_;
+	my ( $user, $tags, $args ) = @_;
 	# Get rid of ! if needed.
 	$args =~ s/^\!//;
 	
@@ -448,7 +449,7 @@ sub help  {
 		foreach ( @{$help{$args}} )  {
 			if (/^\+/)  {
 				# Either skip the +, or end.
-				if ( !&admin_test($tag) )  { next; }
+				if ( !&admin_test($tags) )  { next; }
 				else  { return; }
 				}
 			&chat($_);
@@ -459,7 +460,7 @@ sub help  {
 
 
 sub rule  {
-	my ( $user, $tag, $args ) = @_;
+	my ( $user, $tags, $args ) = @_;
 	unless ( $args =~ /^\d+$/ and $args <= @rules )  {
 		&chat( "Invalid rule number." );
 		return;
@@ -470,25 +471,25 @@ sub rule  {
 
 
 sub vote  {
-	my ( $user, $tag, $args ) = @_;
+	my ( $user, $tags, $args ) = @_;
 	# Handle creating a poll
-	if ( &admin_test($tag) and $args =~ /^new (.*)/i )  {
+	if ( &admin_test($tags) and $args =~ /^new (.*)/i )  {
 		# Set the poll prompt
-		$cfg{poll} = $1;
+		$vars{vote}{poll} = $1;
 		# Blank the votes
-		$cfg{votes} = {};
+		$vars{vote}{votes} = {};
 		return;
 		}
 	# Handle ending a poll
-	if ( &admin_test($tag) and $args =~ /^(end|stop)$/i )  {
+	if ( &admin_test($tags) and $args =~ /^(end|stop)$/i )  {
 		# Reset results
-		$cfg{results} = {};
+		$vars{vote}{results} = {};
 		
 		# Stash the prompt
-		$cfg{result} = $cfg{poll};
+		$vars{vote}{result} = $vars{vote}{poll};
 		
 		# Tally votes
-		foreach ( values %{$cfg{votes}} )  {
+		foreach ( values %{$vars{vote}{votes}} )  {
 			my @raw = split /\s+/;
 			# Check for duplicates
 			my @votes;
@@ -498,35 +499,35 @@ sub vote  {
 				$votes[$_]++;
 				}
 			for (my $i = 1; $i <= @votes; $i++)  {
-				${$cfg{results}}{$i}++ if $votes[$i];
+				${$vars{vote}{results}}{$i}++ if $votes[$i];
 				}
 			
 			}
 		
-		$cfg{poll} = '';
+		$vars{vote}{poll} = '';
 		&chat('Voting closed.');
 		return;
 		}
 	# Handle displaying results
-	if ( &admin_test($tag) and $args =~ /^result(s)?$/i )  {
-		&chat($cfg{result});
-		my @ranking = sort { ${$cfg{results}}{$b} <=> ${$cfg{results}}{$a} } keys %{$cfg{results}};
-		&chat("Choice $_: ${cfg{results}{$_}}") foreach @ranking;
+	if ( &admin_test($tags) and $args =~ /^result(s)?$/i )  {
+		&chat($vars{vote}{result});
+		my @ranking = sort { ${$vars{vote}{results}}{$b} <=> ${$vars{vote}{results}}{$a} } keys %{$vars{vote}{results}};
+		&chat("Choice $_: ${vars{vote}{results}{$_}}") foreach @ranking;
 		return;
 		}
 	
 	# That's all the admin commands
 	# If there is no current poll, stop here
-	unless ($cfg{poll})  {
+	unless ($vars{vote}{poll})  {
 		&chat("No current poll.");
 		return;
 		}
 	
 	# Print the poll by default
 	unless ($args)  {
-		my $message = "Current poll: $cfg{poll}";
+		my $message = "Current poll: $vars{vote}{poll}";
 		# Display current vote if user has voted.
-		$message .= " Current vote for $user: $cfg{votes}{$user}" if ($cfg{votes}{$user});
+		$message .= " Current vote for $user: $vars{vote}{votes}{$user}" if ($vars{vote}{votes}{$user});
 		&chat($message);
 		return;
 		}
@@ -538,7 +539,7 @@ sub vote  {
 		}
 	
 	# Store votes by user, to allow easy changing.
-	$cfg{votes}{$user} = $args;
+	$vars{vote}{votes}{$user} = $args;
 	
 	
 	
