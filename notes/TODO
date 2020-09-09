@@ -1,14 +1,12 @@
 Things to do still:
 
-* Pick a format for helptext
-* Fix help command - usage line, and advanced text
-* !help vote: it says just type the number, not !vote #
 * acknowledge votes
 * vote count
 * Provide a namespace for commands to store data.
 ** Volatile and persistent?
 ** Need to create persistent storage
 * Actually make a units command, include github link and other info
+* Allow command abbreviation via lookup table
 
 
 Possible ideas for later:

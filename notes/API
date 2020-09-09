@@ -1,0 +1,51 @@
+command name
+startup
+regex hooks
+storage
+OBS plugin-teraction
+timers
+other triggers?
+
+
+All calls to a command receive three things, so start with:
+	my ($user, $tags, $args) = @_;
+
+$user is the Twitch username of the user who invoked the command
+
+$tags is a hash reference to all of the Twitch tags passed with the message. 
+These are accessible as, for example, $tags{badges}. 
+The &admin_test subroutine takes $tags as its argument:
+if (&admin_test{$tags}) { do stuff }
+
+$args is everything the user typed after the command, minus the leading space. 
+It may be empty.
+
+
+
+use whatever local variables you want
+They will not pass between calls
+
+for variables to persist between calls, use:
+%vars{command}{variable}
+and do whatever you want in that namespace
+
+for data to persist between sessions (write to disk), use
+%data{command}{variable}
+In this case, each [variable] should be a single word, and its value should be
+a string, rather than any sort of reference.
+Multiple such variables can exist.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

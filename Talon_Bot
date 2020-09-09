@@ -57,7 +57,7 @@ my %cfg = (
 	bot_color => '8A2BE2',
 	user_color => 'BBBBBB',
 	
-	helpfile => 'helptext'
+	helpfile => 'userhelp.txt'
 	);
 
 # Getopts variables
@@ -449,8 +449,8 @@ sub help  {
 		foreach ( @{$help{$args}} )  {
 			if (/^\+/)  {
 				# Either skip the +, or end.
-				if ( !&admin_test($tags) )  { next; }
-				else  { return; }
+				next if &admin_test($tags);
+				return;
 				}
 			&chat($_);
 			}
