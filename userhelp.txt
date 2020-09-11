@@ -34,4 +34,3 @@ End voting on the current poll.
 Advanced Usage: !vote results
 Display the results of the last completed poll.
 
-&&

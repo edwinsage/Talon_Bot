@@ -211,15 +211,22 @@ open ( HELP, "<", $cfg{helpfile} ) or die "Could not open help file $cfg{helpfil
 my %help;
 my @shlorp;
 while ( <HELP> )  {
-	# Ignore blank lines.
-	next if /^\s*$/;
-	push ( @shlorp, $_ );
+	# Skip checks if we're at the end.
+	unless (eof)  {
+		
+		# Ignore blank lines.
+		next if /^\s*$/;
+		push ( @shlorp, $_ );
+		
+		# Get one block at a time.
+		next unless /^\&\&/;
+		
+		# Get rid of the ampersands.
+		pop @shlorp;
+		}
 	
-	# Get one block at a time.
-	next unless /^\&\&/;
-	
-	# Get rid of the ampersands.
-	pop @shlorp;
+	# Make sure we got something.
+	next unless @shlorp;
 	
 	# First line should be the command(s).
 	my $line = shift @shlorp;
