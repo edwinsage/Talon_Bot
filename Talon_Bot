@@ -293,11 +293,10 @@ unless ($fake)  {
 	}
 else  {
 	say 'Running in test mode, not connecting to Twitch...';
-	use WrapHandles;
-	use Symbol;
+	# Only load modules if needed.
+	eval "use WrapHandles;use Symbol";
 	$sock = gensym;
 	tie *$sock, 'WrapHandles', \*STDIN, \*STDOUT;
-	
 	}
 
 # Signal handling, for clean exiting.
