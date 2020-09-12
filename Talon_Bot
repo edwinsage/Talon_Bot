@@ -295,7 +295,7 @@ else  {
 	say 'Running in test mode, not connecting to Twitch...';
 	# Only load modules if needed.
 	eval "use WrapHandles;use Symbol";
-	$sock = gensym;
+	$sock = Symbol::gensym;
 	tie *$sock, 'WrapHandles', \*STDIN, \*STDOUT;
 	}
 
