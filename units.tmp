@@ -1,0 +1,29 @@
+sub cmd_id  {
+	my ( $user, $tags, $args ) = @_;
+	if ( $args and &admin_test($tags) )  {
+		if ( $args =~ /^unset/ )  {
+			$vars{id} = undef;
+			&chat('ID unset.');
+			return;
+			}
+		my ( $id ) = $args =~ /^set (.+)$/;
+		if ( length($id) >= 5 )  {
+			$vars{id} = $id;
+			&chat("ID: $vars{id}");
+			return;
+			}
+		# Bad command
+		&chat("Could not set ID to $args: bad format.");
+		return;
+		}
+	# Check for an ID being set
+	unless ( $vars{id} )  {
+		&chat('No arena ID set.');
+		return;
+		}
+	# The actual command result:
+	&chat("Arena ID: $vars{id}");
+	}
+
+
+1;

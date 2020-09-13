@@ -1,0 +1,45 @@
+startup
+OBS plugin-teraction
+timers
+other triggers?
+
+&&
+!command name
+regex hooks
+
+code block
+
+&&
+
+Command: !id !arena
+
+Code:
+if ( $args and &admin_test($tags) )  {
+	if ( $args =~ /^unset/ )  {
+		$VARS = undef;
+		&chat('ID unset.');
+		return;
+		}
+	
+	my ( $id ) = $args =~ /^set (.+)$/;
+	if ( length($id) >= 5 )  {
+		$VARS = $id;
+		&chat("ID: $VARS");
+		return;
+		}
+	# Bad command
+	&chat("Could not set ID to $args: bad format.");
+	return;
+	}
+# Check for an ID being set
+unless ( $VARS )  {
+	&chat('No arena ID set.');
+	return;
+	}
+
+# The actual command result:
+&chat("Arena ID: $VARS");
+
+
+
+&&

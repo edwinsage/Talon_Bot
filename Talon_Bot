@@ -23,6 +23,9 @@ use IO::Socket::SSL;
 use Text::Wrap qw(wrap $columns);
 use Getopt::Long;
 
+# Predeclare debug prototype.
+sub debug ($$);
+
 # This is how to run this program!
 sub usage  {
 	print <<"END_HELP";
@@ -35,6 +38,7 @@ Options:
     -h   --help         Print this help text
     -c   --config       Specify a config file other than .Talon_Bot.rc
     -t   --test         Don't actually connect to Twitch, just run interactively
+    -d   --debug        Enable extra debug output
 
 END_HELP
 #'# <- Fix syntax highlighting.
@@ -56,16 +60,18 @@ my %cfg = (
 	width => '25',
 	bot_color => '8A2BE2',
 	user_color => 'BBBBBB',
+	unit_temp => 'units.tmp',
 	
 	helpfile => 'userhelp.txt'
 	);
 
 # Getopts variables
 Getopt::Long::Configure("bundling");
-my ( $config_file, $fake );
+my ( $config_file, $fake , $debug );
 
 GetOptions( "test|t" => \$fake,
 	    "config|c=s" => \$config_file,
+	    "debug|d+" => \$debug,
 	    "help|h" => \&usage
 	    );
 
@@ -130,6 +136,9 @@ auth = $cfg{auth}
 # File containing help text for commands.
 # See docs/helpfile for details.
 #helpfile = $cfg{helpfile}
+
+# Temporary file for units code.
+#unit_temp = $cfg{unit_temp}
 
 
 
@@ -252,18 +261,165 @@ $columns = $cfg{width};
 my @rules = split ( /\s*\|\s*/, $cfg{rules} );
 my %vars;
 
-
-# Command list
+# Builtin command list
 my %command = (
 	units => \&units,
-	arena => \&id,
-	id => \&id,
 	rules => \&rule,
 	rule => \&rule,
 	vote => \&vote,
 	
 	help => \&help
 	);
+
+
+
+
+
+# Load units.
+my @units = <units/*.unit>;
+my @output;
+
+debug 1,"Units files: @units";
+
+# Parse each one.
+foreach my $file (@units)  {
+	unless (open ( UNIT, "<", $file ))  {
+		warn "Could not open unit file $file for reading.";
+		next;
+		}
+	my ($namespace) = $file =~ /(\w+)\.unit$/;
+	
+	# Shlorp in the file by sections.
+	my @shlorp;
+	BLOCK: while ( <UNIT> )  {
+		debug 2,"Line read from unit file";
+		# Skip checks if we're at the end.
+		unless (eof)  {
+			debug 3, "Check1";
+			# Ignore blank lines.
+			next if /^\s*$/;
+			chomp;
+			push ( @shlorp, $_ );
+			
+			debug 3,"Check2";
+			# Get one block at a time.
+			next unless /^\&\&/;
+			
+			debug 3,"Check3";
+			# Get rid of the ampersands.
+			pop @shlorp;
+			}
+		
+		debug 1,"Shlorped";
+		# Make sure we got something.
+		next unless @shlorp;
+		
+		debug 2,"@shlorp";
+		# Right now there are only command sections.
+		# More parsing will come later.
+		
+		# Parse commands
+		my %header;
+		while (@shlorp)  {
+			# Peel off lines until we hit the code block.
+			$_ = shift @shlorp;
+			next if /^\s*$/;
+			
+			
+			if ( /^Code:/ )  {
+				debug 1,"Code block start";
+				last;
+				}
+			elsif ( /(.*): (.*)/ ) {
+				$header{$1} = $2;
+				
+				}
+			else  {
+				#!# This needs a far better diagnostic message.
+				warn "Could not parse line:\n\t$_\n";
+				last;
+				}
+			
+			
+			}
+		
+		# There should at least be the commands in %header
+		# Check and make sure something isn't obviously wrong.
+		unless ( $header{Command} )  {
+			warn "Command line not found.";
+			@shlorp = ();
+			next;
+			}
+		
+		
+		my @keys = split ( /\s+/, $header{Command} );
+		
+		my $main = $keys[0];
+		$main =~ s/!//;
+		
+		debug 1,"Adding command $main";
+		# Add the command to the command list.
+		foreach ( @keys )  {
+			if ( !(/^!\w+$/) )  {
+				warn "Error parsing unit file: $_ is not a proper command.";
+				next BLOCK;
+				}
+			s/!//;
+			if (defined $command{$_})  {
+				warn "Command name $_ already exists.";
+				next BLOCK if ( $_ eq $main );
+				next;
+				}
+			
+			# Checks out
+			$command{$_} = \&{"cmd_$main"};
+			
+			
+			
+			
+			}
+		
+		# Create the subroutine.
+		debug 1, 'Pushing subroutine to @output';
+		push @output, "sub cmd_$main  {\n\t"
+		    . 'my ( $user, $tags, $args ) = @_;'
+		    . "\n";
+		
+		foreach (@shlorp)  {
+			# Translate to proper code
+			s/([\$\%])VARS/$1vars{$namespace}/g;
+			s/([\$\%])DATA/$1data{$namespace}/g;
+			
+			
+			push ( @output, "\t$_\n" );
+			}
+		push ( @output, "\t}\n\n" );
+		@shlorp = ();
+		}
+	close UNIT;
+	}
+
+# Write the result to a temporary file.
+open ( UNITS, ">", $cfg{unit_temp} );
+print UNITS foreach @output;
+# If everything works, this should be the return value.
+print UNITS "\n1;\n";
+close UNITS;
+
+
+### Run the units file
+
+my $return = do $cfg{unit_temp};
+if ($return)  {
+	debug 1,"Loaded $cfg{unit_temp} successfully.";
+	}
+else  {
+	die "Couldn't parse $cfg{unit_temp}: $@" if $@;
+	die "Couldn't do $cfg{unit_temp}: $!" unless defined $return;
+	die "Couldn't run $cfg{unit_temp}";
+	}
+
+
 
 
 
@@ -627,6 +783,11 @@ sub signal_handler  {
 	say $sock 'QUIT';
 	&logoff;
 	exit;
+	}
+
+
+sub debug ($$)  {
+	print "DEBUG: $_[1]\n" if ($debug >= $_[0]);
 	}
 
 
