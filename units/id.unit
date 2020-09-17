@@ -1,17 +1,8 @@
-startup
-OBS plugin-teraction
-timers
-other triggers?
-
-&&
-!command name
-regex hooks
-
-code block
-
-&&
 
 Command: !id !arena
+
+Help: Usage: !id|Used when there is an open arena for Smash Bros.  Simply type '!id' (or '!arena') to get the current arena ID, plus password if there is one.|+|Advanced Usage: !id set <text>|Set the string that will be printed when the !id command is used.  A password can be added simply by having it be part of the string, e.g. "!id set ZXCVB  PW: 1234".
+
 
 Code:
 if ( $args and &admin_test($tags) )  {
@@ -40,6 +31,3 @@ unless ( $VARS )  {
 # The actual command result:
 &chat("Arena ID: $VARS");
 
-
-
-&&

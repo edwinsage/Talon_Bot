@@ -256,6 +256,11 @@ while ( <HELP> )  {
 	}
 
 
+# Load data file
+#open ( FILE, "<", $cfg{helpfile} ) or die "Could not open help file $cfg{helpfile}.";
+
+
+
 # Set up other variables.
 $columns = $cfg{width};
 my @rules = split ( /\s*\|\s*/, $cfg{rules} );
@@ -264,16 +269,20 @@ my %vars;
 # Builtin command list
 my %command = (
 	units => \&units,
-	rules => \&rule,
-	rule => \&rule,
-	vote => \&vote,
-	
 	help => \&help
 	);
 
+# Used for listing commands
+my @command_list = keys %command;
 
 
 
+
+
+
+#############
+##  Units  ##
+#############
 
 # Load units.
 my @units = <units/*.unit>;
@@ -330,9 +339,9 @@ foreach my $file (@units)  {
 				debug 1,"Code block start";
 				last;
 				}
-			elsif ( /(.*): (.*)/ ) {
+			elsif ( /(.*?): (.*)/ ) {
 				$header{$1} = $2;
-				
+				debug 3,"Header $1 = $2";
 				}
 			else  {
 				#!# This needs a far better diagnostic message.
@@ -351,14 +360,20 @@ foreach my $file (@units)  {
 			next;
 			}
 		
-		
+		# Process the Command line
 		my @keys = split ( /\s+/, $header{Command} );
 		
 		my $main = $keys[0];
 		$main =~ s/!//;
 		
+		
+		
+		
+		
+		
+		
+		# Add the command to the command hash.
 		debug 1,"Adding command $main";
-		# Add the command to the command list.
 		foreach ( @keys )  {
 			if ( !(/^!\w+$/) )  {
 				warn "Error parsing unit file: $_ is not a proper command.";
@@ -378,6 +393,22 @@ foreach my $file (@units)  {
 			
 			
 			}
+		# Add the main name to the command list.
+		push @command_list, $main;
+		
+		
+		# Load help text.
+		if ($header{Help})  {
+			debug 1,"Help found in $main";
+			my @text = split ( /\|/, $header{Help} );
+			foreach (@keys)  {
+				$help{"$_"} = \@text;
+				debug 3,"help item $_";
+				}
+			debug 2,int(@text);
+			}
+		
+		
 		
 		# Create the subroutine.
 		debug 1, 'Pushing subroutine to @output';
@@ -420,6 +451,8 @@ else  {
 	}
 
 
+
+@command_list = sort @command_list;
 
 
 
@@ -560,40 +593,6 @@ sub units  {
 	}
 
 
-sub id  {
-	my ( $user, $tags, $args ) = @_;
-	# Only admin uses args.
-	#say( $user, $tags, $args );
-	
-	if ( $args and &admin_test($tags) )  {
-		
-		if ( $args =~ /^unset/ )  {
-			$vars{id} = undef;
-			&chat('ID unset.');
-			return;
-			}
-		
-		my ( $id ) = $args =~ /^set (.+)$/;
-		if ( length($id) >= 5 )  {
-			$vars{id} = $id;
-			&chat("ID: $vars{id}");
-			return;
-			}
-		# Bad command
-		&chat("Could not set ID to $args: bad format.");
-		return;
-		}
-	# Check for an ID being set
-	unless ( $vars{id} )  {
-		&chat('No arena ID set.');
-		return;
-		}
-	
-	# The actual command result:
-	&chat("Arena ID: $vars{id}");
-	
-	}
-
 
 sub help  {
 	my ( $user, $tags, $args ) = @_;
@@ -604,8 +603,8 @@ sub help  {
 	# Default help
 	unless ( $help{$args} )  {
 		#!# Find a better way to list commands.
-		&chat("Available commands: !help, !id, !rule, !units, !vote.  "
-		    . "For more information on a specific command, type '!help [command]'.");
+		&chat("Available commands: !" . join (', !', @command_list)
+		    . ".  For more information on a specific command, type '!help [command]'.");
 		}
 	else  {
 		foreach ( @{$help{$args}} )  {
@@ -629,90 +628,6 @@ sub rule  {
 		}
 	
 	&chat("Rule $args: @rules[$args - 1]");
-	}
-
-
-sub vote  {
-	my ( $user, $tags, $args ) = @_;
-	# Handle creating a poll
-	if ( &admin_test($tags) and $args =~ /^new (.*)/i )  {
-		# Set the poll prompt
-		$vars{vote}{poll} = $1;
-		# Blank the votes
-		$vars{vote}{votes} = {};
-		return;
-		}
-	# Handle ending a poll
-	if ( &admin_test($tags) and $args =~ /^(end|stop)$/i )  {
-		# Reset results
-		$vars{vote}{results} = {};
-		
-		# Stash the prompt
-		$vars{vote}{result} = $vars{vote}{poll};
-		
-		# Tally votes
-		foreach ( values %{$vars{vote}{votes}} )  {
-			my @raw = split /\s+/;
-			# Check for duplicates
-			my @votes;
-			foreach (@raw)  {
-				# Cap the value so the array doesn't get stupidly large
-				next if ( $_ > 100 );
-				$votes[$_]++;
-				}
-			for (my $i = 1; $i <= @votes; $i++)  {
-				${$vars{vote}{results}}{$i}++ if $votes[$i];
-				}
-			
-			}
-		
-		$vars{vote}{poll} = '';
-		&chat('Voting closed.');
-		return;
-		}
-	# Handle displaying results
-	if ( &admin_test($tags) and $args =~ /^result(s)?$/i )  {
-		&chat($vars{vote}{result});
-		my @ranking = sort { ${$vars{vote}{results}}{$b} <=> ${$vars{vote}{results}}{$a} } keys %{$vars{vote}{results}};
-		&chat("Choice $_: ${vars{vote}{results}{$_}}") foreach @ranking;
-		return;
-		}
-	
-	# That's all the admin commands
-	# If there is no current poll, stop here
-	unless ($vars{vote}{poll})  {
-		&chat("No current poll.");
-		return;
-		}
-	
-	# Print the poll by default
-	unless ($args)  {
-		my $message = "Current poll: $vars{vote}{poll}";
-		# Display current vote if user has voted.
-		$message .= " Current vote for $user: $vars{vote}{votes}{$user}" if ($vars{vote}{votes}{$user});
-		&chat($message);
-		return;
-		}
-	
-	# Only numbers and spaces allowed
-	unless ( $args =~ /^[\d\s]*$/ )  {
-		&chat("Votes must only consist of numbers, separated by spaces.");
-		return;
-		}
-	
-	# Store votes by user, to allow easy changing.
-	$vars{vote}{votes}{$user} = $args;
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	}
 
 
@@ -787,7 +702,7 @@ sub signal_handler  {
 
 
 sub debug ($$)  {
-	print "DEBUG: $_[1]\n" if ($debug >= $_[0]);
+	print "DEBUG$_[0]: $_[1]\n" if ($debug >= $_[0]);
 	}
 
 
