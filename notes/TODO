@@ -2,16 +2,13 @@ Things to do still:
 
 * acknowledge votes
 * vote count
-* Provide a namespace for commands to store data.
-** Volatile and persistent?
-** Need to create persistent storage
+* Implement persistent storage
 * Actually make a units command, include github link and other info
-* Allow command abbreviation via lookup table
+* Pick a method for putting multiple lines of text in a file, like help, rules, etc.
 
 
 Possible ideas for later:
 
-* Mini-language / API for commands?  Commands-as-files?
 * Let commands specify regex for chat messages to be processed?
 ** !vote could handle bare numbers; "1" rather than "!vote 1"
 * Have main loop do a non-blocking check for input, to allow for timers
