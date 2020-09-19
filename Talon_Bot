@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Talon_Bot, a multipurpose bot for Twitch chat
-# Version 0.0.0-alpha, Still-in-the-palace edition
+my $version = '0.1.0-alpha_wip';
 # Copyright 2020 Michael Pirkola
 
 # This program is free software: you can redistribute it and/or modify
@@ -15,6 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# This number should be changed to the current major.minor version number any
+# time any change is made to the database format that is not fully forwards and
+# backwards compatible with the previous parsing code.
+my $dbVersion = '0.1';
+
+
 
 use v5.20;
 
@@ -61,6 +68,7 @@ my %cfg = (
 	bot_color => '8A2BE2',
 	user_color => 'BBBBBB',
 	unit_temp => 'units.tmp',
+	data_file => 'data.db',
 	
 	helpfile => 'userhelp.txt'
 	);
@@ -136,6 +144,9 @@ auth = $cfg{auth}
 # File containing help text for commands.
 # See docs/helpfile for details.
 #helpfile = $cfg{helpfile}
+
+# Persistent storage for units data.
+#data_file = $cfg{data_file}
 
 # Temporary file for units code.
 #unit_temp = $cfg{unit_temp}
@@ -256,15 +267,16 @@ while ( <HELP> )  {
 	}
 
 
-# Load data file
-#open ( FILE, "<", $cfg{helpfile} ) or die "Could not open help file $cfg{helpfile}.";
-
-
 
 # Set up other variables.
 $columns = $cfg{width};
 my @rules = split ( /\s*\|\s*/, $cfg{rules} );
 my %vars;
+my %data;
+my $lastdump;
+
+
+
 
 # Builtin command list
 my %command = (
@@ -432,6 +444,101 @@ foreach my $file (@units)  {
 
 # Write the result to a temporary file.
 open ( UNITS, ">", $cfg{unit_temp} );
+print UNITS <<'END_OF_DATA_SUBS';
+sub load_data  {
+	my ($file, $version) = @_;
+	my ($major_ver, $minor_ver) = $version =~ /^(\d+)\.(\d+)/;
+	# First check if the data file exists.
+	return unless ( -e $file );
+	
+	
+	# try to load the database.
+	die "Could not open data file $file for reading."
+	    unless ( open (IN, '<', $file) );
+	
+	# Get database version requirement from the first line only.
+	my $req_version = <IN>;
+	chomp $req_version;
+	
+	die "Could not read version string from data file $file"
+	    unless $req_version =~ /^(\d+)\.(\d+)$/;
+	
+	die "Database file $file needs Talon_Bot version $req_version.0 or better to read it.  Current version is only $version"
+	    if ($major_ver < $1 or $minor_ver < $2);
+	
+	while (my $line = <IN>)  {
+		chomp;
+		
+		# Old code first.
+		if ($req_version < 0.0)  {
+			# Put old database loading method here.
+			}
+		else  {  # Current version: 0.0
+			# All lines should match this pattern.
+			# There should be no funny business here.
+			die "Error reading database file $file.  Line not parseable:\n$line"
+			    unless $line =~ /([\w_]+):([\w_]+): (.*)/;
+			
+			# Store the data.
+			$data{$1}{$2} = $3;
+			}
+		}
+	close(IN);
+	}
+
+
+sub dump_data  {
+	my ($file, $dbVersion) = @_;
+	
+	unless ( open (OUT, '>', "${file}.tmp") )  {
+		warn "Unable to write to ${file}.tmp\n";
+		return;
+		}
+	# We don't need the current version,
+	# we need the last time the database format was changed.
+	print OUT "$dbVersion\n";
+	
+	debug 2,"starting hash dump $data{boop}{boop}";
+	# %data is a hash of hashes.  Double-loop through it.
+	foreach my $unit (keys %data)  {
+		debug 2,"Looping for $unit";
+		foreach my $var ( keys %{$data{$unit}} )  {
+			debug 2,"Loop for $var in $unit";
+			# These keys need checking.  Alphanumeric and _ only.
+			unless ($var =~ /^[\w_]+$/)  {
+				warn "Could not store value $unit:$var - only alphanumeric characters and underscore are allowed for names.";
+				next;
+				}
+			# Since we're storing these in a line-based format, newlines are not allowed.
+			if ( $data{$unit}{$var} =~ /\n/ )  {
+				warn "Stripping newlines from $data{$unit}{$var}.  Stored data cannot contain newlines.";
+				$data{$unit}{$var} =~ s/\n//g;
+				}
+			# Write the data.
+			print OUT "$unit:$var: $data{$unit}{$var}\n";
+			
+			}
+		}
+	unless ( close(OUT) )  {
+		warn "Warning: couldn't complete save to ${cfg{data_file}}.tmp!";
+		return;
+		}
+	if ( rename "${file}.tmp", $file )  {
+		debug 1, "Dumped data to file.";
+		$lastdump = time;
+		}
+	else  {
+		warn "Could not replace old data file ${file}";
+		}
+	
+	}
+
+END_OF_DATA_SUBS
+
+
+
+
+
 print UNITS foreach @output;
 # If everything works, this should be the return value.
 print UNITS "\n1;\n";
@@ -453,6 +560,9 @@ else  {
 
 
 @command_list = sort @command_list;
+
+# Load data file
+&load_data( $cfg{data_file}, $version );
 
 
 
@@ -707,9 +817,9 @@ sub debug ($$)  {
 
 
 sub logoff  {
-	$sock->close();
+	&dump_data( $cfg{data_file}, $dbVersion );
 	if ( $cfg{rawlog} )  {
-		print RAWLOG"\n--\n\n";
+		print RAWLOG "\n--\n\n";
 		close RAWLOG
 		  or warn "Could not close $cfg{rawlog}.";
 		}
@@ -718,4 +828,5 @@ sub logoff  {
 		close LOG
 		  or warn "Could not close $cfg{chatlog}.";
 		}
+	$sock->close();
 	}

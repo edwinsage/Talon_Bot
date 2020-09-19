@@ -7,3 +7,6 @@ Talon_Bot.rc
 
 # Ignore temporary files
 *.tmp
+
+# Ignore generated database
+*.db
