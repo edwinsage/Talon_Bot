@@ -4,11 +4,11 @@ This will get moved to docs/ once there's something worth releasing here.
 
 ## Current implementation:
 
-Command: !command_name !alternate_name !com_name
-
-Help: Display this help when users type "!help command_name"|Multiple lines are separated by a vertical bar.|This is line 3.
-
-Code:
+    Command: !command_name !alternate_name !com_name
+    
+    Help: Display this help when users type "!help command_name"|Multiple lines are separated by a vertical bar.|This is line 3.
+    
+    Code:
     # This is now a block of Perl code.
     # Everything after the 'Code:' line is treated as the body of the command
     # subroutine, until the end of the block or end of file.
@@ -22,6 +22,7 @@ Code:
     
     # To keep information beyond the current call, use the VARS space.
     # VARS should generally be treated as a hash, with keys for variables.
+    # Anything stored in VARS will not persist after the bot exits.
     $VARS{times_command_run}++;
     
     # Other data structures can be created via references.
@@ -33,12 +34,18 @@ Code:
         # The next line makes a nested data structure
         $VARS{"$name"}{was_greeted} = 'yes';
         }
-
-&&
-
-Command: !another_command
-...etc.
-
+    
+    # To have data persist long-term (even after the bot exits and is started
+    # again), store it in DATA.  Unlike VARS, DATA can only be used to store
+    # name/value pairs, where the name consists of only alphanumeric characters
+    # plus underscore, and the value is a string without newlines.
+    $DATA{note_to_self} = "You really wanted yourself to remember $args";
+    
+    &&
+    
+    Command: !another_command
+    ...etc.
+    
 
 
 ## Odds & ends notes
