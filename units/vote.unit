@@ -33,7 +33,7 @@ if ( &admin_test($tags) and $args =~ /^(end|stop)$/i )  {
 			$votes[$_]++;
 			}
 		for (my $i = 1; $i <= @votes; $i++)  {
-			${$VARS{results}}{$i}++ if $votes[$i];
+			$VARS{results}{$i}++ if $votes[$i];
 			}
 		
 		}
@@ -45,8 +45,8 @@ if ( &admin_test($tags) and $args =~ /^(end|stop)$/i )  {
 # Handle displaying results
 if ( &admin_test($tags) and $args =~ /^result(s)?$/i )  {
 	&chat($VARS{result});
-	my @ranking = sort { ${$VARS{results}}{$b} <=> ${$VARS{results}}{$a} } keys %{$VARS{results}};
-	&chat("Choice $_: ${VARS{results}{$_}}") foreach @ranking;
+	my @ranking = sort { $VARS{results}{$b} <=> $VARS{results}{$a} } keys %{$VARS{results}};
+	&chat("Choice $_: $VARS{results}{$_}") foreach @ranking;
 	return;
 	}
 
@@ -62,6 +62,7 @@ unless ($args)  {
 	my $message = "Current poll: $VARS{poll}";
 	# Display current vote if user has voted.
 	$message .= " Current vote for $user: $VARS{votes}{$user}" if ($VARS{votes}{$user});
+	$message .= "  Total votes: " . int( keys %{$VARS{votes}} );
 	&chat($message);
 	return;
 	}
@@ -74,4 +75,4 @@ unless ( $args =~ /^[\d\s]*$/ )  {
 
 # Store votes by user, to allow easy changing.
 $VARS{votes}{$user} = $args;
-
+&chat("Vote received.");
