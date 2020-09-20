@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Talon_Bot, a multipurpose bot for Twitch chat
-my $version = '0.1.1-alpha';
+my $version = '0.1.2-alpha';
 # Copyright 2020 Michael Pirkola
 
 # This program is free software: you can redistribute it and/or modify
@@ -448,10 +448,11 @@ print UNITS <<'END_OF_DATA_SUBS';
 use v5.20;
 
 my ( %vars, %data, $lastdump );
-my ($major_ver, $minor_ver) = $version =~ /^(\d+)\.(\d+)/;
+
 
 sub load_data  {
 	my ($file, $version) = @_;
+	my ($major_ver, $minor_ver) = $version =~ /^(\d+)\.(\d+)/;
 	
 	# First check if the data file exists.
 	return unless ( -e $file );
