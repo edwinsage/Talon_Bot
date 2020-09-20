@@ -271,9 +271,6 @@ while ( <HELP> )  {
 # Set up other variables.
 $columns = $cfg{width};
 my @rules = split ( /\s*\|\s*/, $cfg{rules} );
-my %vars;
-my %data;
-my $lastdump;
 
 
 
@@ -448,9 +445,14 @@ foreach my $file (@units)  {
 # Write the result to a temporary file.
 open ( UNITS, ">", $cfg{unit_temp} );
 print UNITS <<'END_OF_DATA_SUBS';
+use v5.20;
+
+my ( %vars, %data, $lastdump );
+my ($major_ver, $minor_ver) = $version =~ /^(\d+)\.(\d+)/;
+
 sub load_data  {
 	my ($file, $version) = @_;
-	my ($major_ver, $minor_ver) = $version =~ /^(\d+)\.(\d+)/;
+	
 	# First check if the data file exists.
 	return unless ( -e $file );
 	
@@ -523,7 +525,7 @@ sub dump_data  {
 			}
 		}
 	unless ( close(OUT) )  {
-		warn "Warning: couldn't complete save to ${cfg{data_file}}.tmp!";
+		warn "Warning: couldn't complete save to ${file}.tmp!";
 		return;
 		}
 	if ( rename "${file}.tmp", $file )  {
@@ -537,9 +539,6 @@ sub dump_data  {
 	}
 
 END_OF_DATA_SUBS
-
-
-
 
 
 print UNITS foreach @output;
