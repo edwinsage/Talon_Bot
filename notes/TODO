@@ -1,7 +1,5 @@
 Things to do still:
 
-* acknowledge votes
-* vote count
 * Actually make a units command, include github link and other info
 * Pick a method for putting multiple lines of text in a file, like help, rules, etc.
 
@@ -11,6 +9,7 @@ Possible ideas for later:
 * Let commands specify regex for chat messages to be processed?
 ** !vote could handle bare numbers; "1" rather than "!vote 1"
 * Have main loop do a non-blocking check for input, to allow for timers
+* Make an installer, once things get more stable
 
 
 
