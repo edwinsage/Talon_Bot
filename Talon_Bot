@@ -309,27 +309,30 @@ foreach my $file (@units)  {
 		next;
 		}
 	my ($namespace) = $file =~ /(\w+)\.unit$/;
+	unless ( $namespace )  {
+		warn "Invalid unit name $file.  Units must be named using only
+		    alphanumeric characters and underscore.  Skipping...";
+		next;
+		}
 	
 	# Shlorp in the file by sections.
 	my @shlorp;
 	BLOCK: while ( <UNIT> )  {
 		debug 2,"Line read from unit file";
 		# Skip checks if we're at the end.
-		unless (eof)  {
-			debug 3, "Check1";
-			# Ignore blank lines.
-			next if /^\s*$/;
-			chomp;
-			push ( @shlorp, $_ );
-			
-			debug 3,"Check2";
-			# Get one block at a time.
-			next unless /^\&\&/;
-			
-			debug 3,"Check3";
-			# Get rid of the ampersands.
-			pop @shlorp;
-			}
+		debug 3, "Check1";
+		# Ignore blank lines.
+		next if ( /^\s*$/ and !eof );
+		chomp;
+		push ( @shlorp, $_ );
+		
+		debug 3,"Check2";
+		# Get one block at a time.
+		next unless ( /^\&\&/ or eof );
+		
+		debug 3,"Check3";
+		# Get rid of the ampersands.
+		pop @shlorp if /^\&\&/;
 		
 		debug 1,"Shlorped";
 		# Make sure we got something.
@@ -430,8 +433,8 @@ foreach my $file (@units)  {
 		
 		foreach (@shlorp)  {
 			# Translate to proper code
-			s/([\$\%])VARS/$1vars{$namespace}/g;
-			s/([\$\%])DATA/$1data{$namespace}/g;
+			s/([\$\%]\{?)VARS/$1vars{$namespace}/g;
+			s/([\$\%]\{?)DATA/$1data{$namespace}/g;
 			
 			
 			push ( @output, "\t$_\n" );

@@ -30,4 +30,3 @@ unless ( $VARS )  {
 
 # The actual command result:
 &chat("Arena ID: $VARS");
-
