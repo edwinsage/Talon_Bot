@@ -7,7 +7,7 @@ Talon_Bot is intended to be an extendable, hackable bot for Twitch chat.
 
 * Extensible user commands
 
-* Can create timestamped logs of chats
+* Creates timestamped logs of chats
 
 * Interactive help system
 
@@ -26,19 +26,25 @@ Talon_Bot is intended to be an extendable, hackable bot for Twitch chat.
 
 ### How to:
 
-0. Clone the repository with `git clone https://github.com/edwinsage/Talon_Bot`, or download and extract one of the releases.
+1. Clone the repository with `git clone https://github.com/edwinsage/Talon_Bot`,
+   or download and extract one of the releases.
 
-0. Run Talon_Bot to create a default config file, `.Talon_Bot.rc`.
+1. Change to the Talon_Bot directory and run `./Talon_Bot` to create a default
+   config file, `.Talon_Bot.rc`.
 
-0. Edit the config file, particularly the lines for `user` and `auth`.  (Not needed to run in test mode)
+1. Edit the created config file, particularly the lines for `user` and `auth`.
+   (Not needed to run in test mode)
 
-0. Run the bot.  It will connect to the Twitch chat of the username (or other channel specified in the config), and will respond to commands.  Alternatively, run the bot in test mode using `./Talon_Bot -t`, which will skip the connection process and allow interaction directly on the command line.
+1. Run the bot.  It will connect to the Twitch chat of the username (or other
+   channel specified in the config), and will respond to commands.
+   Alternatively, run the bot in test mode using `./Talon_Bot -t`, which will
+   skip the connection process and allow interaction directly on the command
+   line.
 
 
 ### Hacking:
 
-Code is still in alpha and a bit of a mess.  However, there is a fledgling plugin
- API for adding commands that lets you avoid all knowledge of the Talon_Bot code,
- except for a few variables.  Check out notes/API.md for details so far.
-
-
+Code is still in alpha and a bit of a mess.  However, there is a
+fledgling plugin API for adding commands that lets you avoid all
+knowledge of the Talon_Bot code, except for a few variables.  Check out
+notes/API.md for details so far.
