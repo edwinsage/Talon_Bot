@@ -75,9 +75,9 @@ my %cfg = (
 
 # Getopts variables
 Getopt::Long::Configure("bundling");
-my ( $config_file, $fake , $debug );
+my ( $config_file, $test , $debug );
 
-GetOptions( "test|t" => \$fake,
+GetOptions( "test|t" => \$test,
 	    "config|c=s" => \$config_file,
 	    "debug|d+" => \$debug,
 	    "help|h" => \&usage
@@ -202,7 +202,7 @@ close FILE;
 
 
 # Check essential options
-unless ($fake)  {
+unless ($test)  {
 	die "'user' not set in $config_file!" if ( $cfg{user} eq 'Invalid!' );
 	die "'auth' not set in $config_file!" if ( $cfg{auth} eq 'Invalid!' );
 	}
@@ -575,7 +575,7 @@ else  {
 ##################
 
 my $sock;
-unless ($fake)  {
+unless ($test)  {
 	# Using SSL, because PLAINTEXT BAD
 	$sock = IO::Socket::SSL->new("$cfg{host}:$cfg{port}") or die "Can't open socket: $@";
 	
@@ -630,14 +630,13 @@ while ( <$sock> )  {
 	$time = &timestamp;
 	
 	
-	#print;
 	print RAWLOG "$time $_" if $cfg{rawlog};
 	
 	# Parse received messages.   (@tag1=;tag2=meep ):(user)!user@user.tmi.twitch.tv  (PRIVMSG) #chan        ' :' (msg)
 	my ( $tags, $user, $cmd, $msg ) = /^(@.*? )?:(?:(\w+)!)?(?:\w+@\w+.)?tmi.twitch.tv (\w+) $cfg{channel}(?: :)?(.*)?\r\n/;
 	
 	# Easy CLI testing version:
-	if ($fake)  {
+	if ($test)  {
 		$tags = '@badges=broadcaster;color=#FF0000;display-name=TESTING;fake=yup';
 		$cmd = "PRIVMSG";
 		$user = "$cfg{user}";
@@ -654,7 +653,7 @@ while ( <$sock> )  {
 		# Remove leading spaces
 		s/^\s+//;
 		unless ( /=/ )  {
-			say STDERR "Tag parsing error: $_ unparseable.";
+			warn "Tag parsing error: $_ unparseable.";
 			next;
 			}
 		my ( $key, $value ) = split /\s*=\s*/;
@@ -795,7 +794,7 @@ sub whisper  {
 
 sub admin_test  {
 	my ($tag) = @_;
-	return 1 if ( %$tag{badges} =~ /(broadcaster|moderator)/ );
+	return 1 if ( $tag->{badges} =~ /(broadcaster|moderator)/ );
 	return 0;
 	}
 

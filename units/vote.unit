@@ -61,7 +61,7 @@ unless ($VARS{poll})  {
 unless ($args)  {
 	my $message = "Current poll: $VARS{poll}";
 	# Display current vote if user has voted.
-	$message .= " Current vote for $user: $VARS{votes}{$user}" if ($VARS{votes}{$user});
+	$message .= " Current vote for $user: $VARS{votes}{$tags->{'user-id'}}" if ($VARS{votes}{$tags->{"user-id"}});
 	$message .= "  Total votes: " . int( keys %{$VARS{votes}} );
 	&chat($message);
 	return;
@@ -73,6 +73,6 @@ unless ( $args =~ /^[\d\s]*$/ )  {
 	return;
 	}
 
-# Store votes by user, to allow easy changing.
-$VARS{votes}{$user} = $args;
+# Store votes by user-id, to allow easy changing.
+$VARS{votes}{$tags->{"user-id"}} = $args;
 &chat("Vote received.");
