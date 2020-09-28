@@ -180,6 +180,7 @@ auth = $cfg{auth}
 #port = $cfg{port}
 END_CONFIG
 		close CONFIG;
+		chmod 0600, $config_file or warn "Could not set permissions on $config_file.";
 		say "You will need to edit at least the user and " . 
 		    "auth lines to be able to connect to Twitch.";
 		}
