@@ -112,7 +112,8 @@ unless ($config_file)  {
 		# Pick the first choice.
 		$config_file = $configs[0];
 		say "Creating new config file $config_file.";
-		open( CONFIG, '>', $config_file ) or die "Could not find or create config file.";
+		open( CONFIG, '>', $config_file )
+		    or die "Could not find or create config file.";
 		print CONFIG <<"END_CONFIG";
 # Settings for Talon_Bot
 # Defaults are shown.  To run, user and auth must be set.
@@ -180,7 +181,8 @@ auth = $cfg{auth}
 #port = $cfg{port}
 END_CONFIG
 		close CONFIG;
-		chmod 0600, $config_file or warn "Could not set permissions on $config_file.";
+		chmod 0600, $config_file
+		    or warn "Could not set permissions on $config_file.";
 		say "You will need to edit at least the user and " . 
 		    "auth lines to be able to connect to Twitch.";
 		}
@@ -228,7 +230,8 @@ if ( $cfg{chatlog} )  {
 
 
 # Load help file.
-open ( HELP, "<", $cfg{helpfile} ) or die "Could not open help file $cfg{helpfile}.";
+open ( HELP, "<", $cfg{helpfile} )
+    or die "Could not open help file $cfg{helpfile}.";
 my %help;
 my @shlorp;
 while ( <HELP> )  {
@@ -308,8 +311,8 @@ foreach my $file (@units)  {
 		}
 	my ($namespace) = $file =~ /(\w+)\.unit$/;
 	unless ( $namespace )  {
-		warn "Invalid unit name $file.  Units must be named using only
-		    alphanumeric characters and underscore.  Skipping...";
+		warn "Invalid unit name $file.  Units must be named using only"
+		    ."alphanumeric characters and underscore.  Skipping...";
 		next;
 		}
 	
@@ -460,8 +463,8 @@ sub load_data  {
 	
 	
 	# try to load the database.
-	die "Could not open data file $file for reading."
-	    unless ( open (IN, '<', $file) );
+	open (IN, '<', $file)
+	    or die "Could not open data file $file for reading.";
 	
 	# Get database version requirement from the first line only.
 	my $req_version = <IN>;
@@ -470,7 +473,8 @@ sub load_data  {
 	die "Could not read version string from data file $file"
 	    unless $req_version =~ /^(\d+)\.(\d+)$/;
 	
-	die "Database file $file needs Talon_Bot version $req_version.0 or better to read it.  Current version is only $version"
+	die "Database file $file needs Talon_Bot version $req_version.0 or "
+	    ."better to read it.  Current version is only $version."
 	    if ($major_ver < $1 or $minor_ver < $2);
 	
 	while (my $line = <IN>)  {
@@ -483,8 +487,8 @@ sub load_data  {
 		else  {  # Current version: 0.0
 			# All lines should match this pattern.
 			# There should be no funny business here.
-			die "Error reading database file $file.  Line not parseable:\n$line"
-			    unless $line =~ /([\w_]+):([\w_]+): (.*)/;
+			$line =~ /([\w_]+):([\w_]+): (.*)/
+			    or die "Error reading database file $file.  Line not parseable:\n$line";
 			
 			# Store the data.
 			$data{$1}{$2} = $3;
@@ -516,7 +520,8 @@ sub dump_data  {
 				warn "Could not store value $unit:$var - only alphanumeric characters and underscore are allowed for names.";
 				next;
 				}
-			# Since we're storing these in a line-based format, newlines are not allowed.
+			# Since we're storing these in a line-based format,
+			# newlines are not allowed.
 			if ( $data{$unit}{$var} =~ /\n/ )  {
 				warn "Stripping newlines from $data{$unit}{$var}.  Stored data cannot contain newlines.";
 				$data{$unit}{$var} =~ s/\n//g;
@@ -578,7 +583,8 @@ else  {
 my $sock;
 unless ($test)  {
 	# Using SSL, because PLAINTEXT BAD
-	$sock = IO::Socket::SSL->new("$cfg{host}:$cfg{port}") or die "Can't open socket: $@";
+	$sock = IO::Socket::SSL->new("$cfg{host}:$cfg{port}")
+	    or die "Can't open socket: $@";
 	
 	
 	say 'Logging in.';
@@ -780,7 +786,8 @@ sub term_out  {
 sub chat  {
 	my ( $msg ) = @_;
 	say $sock "PRIVMSG $cfg{channel} :$msg";
-	&term_out( $cfg{user}, { color => "#$cfg{bot_color}", badges => 'moderator' }, $msg );
+	&term_out( $cfg{user},
+	    { color => "#$cfg{bot_color}", badges => 'moderator' }, $msg );
 	print LOG "$time $cfg{user}: $msg\n" if $cfg{chatlog};
 	}
 
@@ -788,7 +795,6 @@ sub chat  {
 sub whisper  {
 	my ( $user, $msg ) = @_;
 	say $sock "PRIVMSG $cfg{channel} :/w $user $msg";
-	#&term_out( $cfg{user}, { color => '#8A2BE2', badges => 'moderator' }, $msg );
 	print LOG "$time $cfg{user}: /w $user $msg\n" if $cfg{chatlog};
 	}
 
