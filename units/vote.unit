@@ -14,6 +14,7 @@ if ( &admin_test($tags) and $args =~ /^new (.*)/i )  {
 	$VARS{votes} = {};
 	return;
 	}
+
 # Handle ending a poll
 if ( &admin_test($tags) and $args =~ /^(end|stop)$/i )  {
 	# Reset results
@@ -42,6 +43,93 @@ if ( &admin_test($tags) and $args =~ /^(end|stop)$/i )  {
 	&chat('Voting closed.');
 	return;
 	}
+
+# Handle saving a poll
+if ( &admin_test($tags) and $args =~ /^save( .*)?$/i )  {
+	# Check for a current poll
+	unless ($VARS{poll})  {
+		&chat("No current poll.");
+		return;
+		}
+	
+	# Check for a prior saved poll
+	if ($DATA{poll})  {
+		if ( $1 eq ' -f' )  {
+			%{$DATA} = {};
+			}
+		else  {
+			&chat("A previous poll is saved.  Use '!vote save -f' to overwrite.");
+			return;
+			}
+		}
+	
+	# Store the prompt
+	$DATA{poll} = $VARS{poll};
+	
+	# Marshall votes into a string
+	my $votes;
+	foreach (keys %{$VARS{votes}})  {
+		debug 1,$_;
+		my $uservote = $VARS{votes}{$_};
+		# Remove whitespace from votes string
+		$uservote =~ s/\s+/,/g;
+		$votes .= "$_:$uservote ";
+		
+		}
+	
+	# Shave off the last space.
+	$votes =~ s/ $//;
+	
+	# Store the result
+	$DATA{votes} = $votes;
+	
+	# Remove the current poll
+	$VARS{poll} = '';
+	&chat("Poll saved.  To restore it, type '!vote load'");
+	
+	
+	return;
+	}
+
+# Handle loading a poll
+if ( &admin_test($tags) and $args =~ /^load$/i )  {
+	# Check for a saved poll
+	unless ($DATA{poll})  {
+		&chat("No saved poll.");
+		return;
+		}
+	
+	# Check for a currently running poll
+	if ($VARS{poll})  {
+		&chat("A poll is currently running.  End it before loading a saved poll.");
+			return;
+			}
+	
+	# Load the prompt
+	$VARS{poll} = $DATA{poll};
+	
+	# Unmarshall votes from storage
+	my $votes;
+	foreach (split / /, $DATA{votes})  {
+		debug 1,$_;
+		my ($user, $vote) = split /:/;
+		
+		# Put back the spaces
+		$vote =~ s/,/ /g;
+		
+		$VARS{votes}{$user} = $vote;
+		}
+	
+	# Remove the saved poll
+	$DATA{poll} = '';
+	$DATA{votes} = '';
+	
+	&chat("Poll restored.");
+	
+	
+	return;
+	}
+
 # Handle displaying results
 if ( &admin_test($tags) and $args =~ /^result(s)?$/i )  {
 	&chat($VARS{result});
