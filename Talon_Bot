@@ -282,6 +282,7 @@ my @rules = split ( /\s*\|\s*/, $cfg{rules} );
 # Builtin command list
 my %command = (
 	units => \&units,
+	rule => \&rule,
 	help => \&help
 	);
 
