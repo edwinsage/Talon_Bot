@@ -645,7 +645,7 @@ while ( <$sock> )  {
 	
 	# Easy CLI testing version:
 	if ($test)  {
-		$tags = '@badges=broadcaster;color=#FF0000;display-name=TESTING;fake=yup';
+		$tags = '@badges=broadcaster;color=#FF0000;display-name=TESTING;fake=yup;user-id=1234567890';
 		$cmd = "PRIVMSG";
 		$user = "$cfg{user}";
 		$msg = $_;
