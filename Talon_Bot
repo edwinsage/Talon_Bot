@@ -473,11 +473,13 @@ sub load_data  {
 	    or die "Could not open data file $file for reading.";
 	
 	# Get database version requirement from the first line only.
-	my $req_version = <IN>;
-	chomp $req_version;
+	my $version_line = <IN>;
+	chomp $version_line;
+	
+	my ($req_version) = $version_line =~ /^v(\d+\.\d+)/;
 	
 	die "Could not read version string from data file $file"
-	    unless $req_version =~ /^(\d+)\.(\d+)$/;
+	    unless $version_line =~ /^v(\d+)\.(\d+)/;
 	
 	die "Database file $file needs Talon_Bot version $req_version.0 or "
 	    ."better to read it.  Current version is only $version."
@@ -548,7 +550,8 @@ sub dump_data  {
 		}
 	# We don't need the current version,
 	# we need the last time the database format was changed.
-	print OUT "$dbVersion\n";
+	my $time = &timestamp;
+	print OUT "v$dbVersion - written $time\n";
 	
 	debug 2,"starting hash dump $data{boop}{boop}";
 	# %data is a hash of hashes.  Double-loop through it.
