@@ -55,7 +55,8 @@ if ( &admin_test($tags) and $args =~ /^save( .*)?$/i )  {
 	# Check for a prior saved poll
 	if ($DATA{poll})  {
 		if ( $1 eq ' -f' )  {
-			%{$DATA} = {};
+			$DATA{poll} = '';
+			$DATA{votes} = '';
 			}
 		else  {
 			&chat("A previous poll is saved.  Use '!vote save -f' to overwrite.");
