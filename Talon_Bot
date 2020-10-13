@@ -60,6 +60,14 @@ END_HELP
 ##  Config  ##
 ##############
 
+# Make a list of places to check, until one is found.
+my @configs = (
+    '.Talon_Bot.rc',
+    'Talon_Bot.rc',
+    $ENV{'HOME'} . '/.Talon_Bot.rc',
+    $ENV{'HOME'} . '/Talon_Bot.rc'
+    );
+
 # Set config defaults.
 my %cfg = (
 	host  => 'irc.chat.twitch.tv',
@@ -89,35 +97,34 @@ GetOptions( "test|t" => \$test,
 # Let's locate our config file.
 # First priority is given to a command line argument.
 # If that's not specified, we have to start looking.
-unless ($config_file)  {
-	# First we check the working directory.
-	
-	# Make a list of places to check, until one is found.
-	my @configs = (
-	    '.Talon_Bot.rc',
-	    'Talon_Bot.rc',
-	    $ENV{'HOME'} . '/.Talon_Bot.rc',
-	    $ENV{'HOME'} . '/Talon_Bot.rc'
-	    );
-	
-	# Now loop until one exists.
-	my $found;
+my $found;
+if ($config_file)  {
+	# Note whether the file actually exists yet.
+	$found = -e $config_file;
+	}
+else  {
+	# Not specified, so we go looking.
 	foreach (@configs)  {
 		if ( -e $_ )  {
 			$config_file = $_;
 			$found = 1;
-			say "Using config file $config_file.";
 			last;
 			}
 		}
+	}
+
+if ($found)  {
+	say "Using config file $config_file.";
+	}
+else  {
 	# Create a new config file if none were found.
-	unless ($found)  {
-		# Pick the first choice.
-		$config_file = $configs[0];
-		say "Creating new config file $config_file.";
-		open( CONFIG, '>', $config_file )
-		    or die "Could not find or create config file.";
-		print CONFIG <<"END_CONFIG";
+	
+	# Pick the first choice.
+	$config_file = $configs[0] unless $config_file;
+	say "Creating new config file $config_file.";
+	open( CONFIG, '>', $config_file )
+	    or die "Could not find or create config file.";
+	print CONFIG <<"END_CONFIG";
 # Settings for Talon_Bot
 # Defaults are shown.  To run, user and auth must be set.
 # Other options may be uncommented and changed.
@@ -183,14 +190,13 @@ auth = $cfg{auth}
 #host = $cfg{host}
 #port = $cfg{port}
 END_CONFIG
-		close CONFIG;
-		chmod 0600, $config_file
-		    or warn "Could not set permissions on $config_file.";
-		say "You will need to edit at least the user and " . 
-		    "auth lines to be able to connect to Twitch.";
-		}
-	
+	close CONFIG;
+	chmod 0600, $config_file
+	    or warn "Could not set permissions on $config_file.";
+	say "You will need to edit at least the user and " . 
+	    "auth lines to be able to connect to Twitch.";
 	}
+
 
 # Read config from file.
 open ( FILE, $config_file ) or die "Could not find $config_file";
@@ -275,6 +281,15 @@ while ( <HELP> )  {
 
 
 
+# Builtin command list
+my %command = (
+	units => \&units,
+	rule => \&rule,
+	help => \&help
+	);
+
+# Used for listing commands
+my @command_list = keys %command;
 
 
 
@@ -633,15 +648,6 @@ my @rules = split ( /\s*\|\s*/, $cfg{rules} );
 
 
 
-# Builtin command list
-my %command = (
-	units => \&units,
-	rule => \&rule,
-	help => \&help
-	);
-
-# Used for listing commands
-my @command_list = keys %command;
 
 
 
