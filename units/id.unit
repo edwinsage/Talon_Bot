@@ -1,7 +1,7 @@
 
 Command: !id !arena
 
-Help: Usage: !id|Used when there is an open arena for Smash Bros.  Simply type '!id' (or '!arena') to get the current arena ID, plus password if there is one.|+|Advanced Usage: !id set <text>|Set the string that will be printed when the !id command is used.  A password can be added simply by having it be part of the string, e.g. "!id set ZXCVB  PW: 1234".
+Help: Usage: !id -- Used when there is an open arena for Smash Bros.  Simply type '!id' (or '!arena') to get the current arena ID, plus password if there is one.|+|Advanced Usage: !id set <text> -- Set the string that will be printed when the !id command is used.  A password can be added simply by having it be part of the string, e.g. "!id set ZXCVB  PW: 1234".|Advanced Usage: !id unset -- Removes a previously set ID.
 
 
 Code:

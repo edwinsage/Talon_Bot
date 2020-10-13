@@ -1,7 +1,7 @@
 
 Command: !vote !poll
 
-Help: Usage: !vote, !vote <choice> [choice...]|See the current poll, or vote in a poll.  To vote, simply type '!vote #', with # being the number for the choice you choose.  Some polls allow voting for more than one option; simply type each number seperated by a space, e.g. "!vote 1 3".|+|Advanced Usage: !vote new <prompt> 1) <text> 2) <text>...|Create a new poll.  <prompt> will be displayed when a viewer types !vote, followed by each choice.  Talon_Bot looks for a number followed by a right parenthesis|Does it?  Does the bot care what the options are?|Advanced Usage: !vote end|End voting on the current poll.|Advanced Usage: !vote results|Display the results of the last completed poll.
+Help: Usage: !vote, !vote <choice> [choice...] -- See the current poll, or vote in a poll.  To vote, simply type '!vote #', with # being the number for the choice you choose.  Some polls allow voting for more than one option; simply type each number seperated by a space, e.g. "!vote 1 3".|+|Advanced Usage: !vote new <prompt> 1) <text> 2) <text>... -- Create a new poll.  <prompt> will be displayed when a viewer types !vote.  Choices should be listed by number, as only numbers are accepted as votes.|Advanced Usage: !vote end -- End voting on the current poll.|Advanced Usage: !vote results -- Display the results of the last completed poll.|Advanced Usage: !vote save [-f] -- Save a poll to be continued later.  Adding -f forces overwriting a previous saved poll.|Advanced Usage: !vote load -- Loads a previously saved poll.
 
 
 
