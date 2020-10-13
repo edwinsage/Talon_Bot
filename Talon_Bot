@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Talon_Bot, a multipurpose bot for Twitch chat
-my $version = '0.1.2-alpha';
+my $version = '0.2.0-alpha';
 # Copyright 2020 Michael Pirkola
 
 # This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@ my $version = '0.1.2-alpha';
 # This number should be changed to the current major.minor version number any
 # time any change is made to the database format that is not fully forwards and
 # backwards compatible with the previous parsing code.
-my $dbVersion = '0.1';
+my $dbVersion = '0.2';
 
 
 
@@ -481,11 +481,19 @@ sub load_data  {
 	while (my $line = <IN>)  {
 		chomp;
 		
-		# Old code first.
-		if ($req_version < 0.0)  {
-			# Put old database loading method here.
+		# We don't care about backups here.
+		if ($line =~ /^\&\&/)  {
+			close(IN);
+			return;
 			}
-		else  {  # Current version: 0.0
+		
+		
+		# Old code first.
+		if ($req_version < 0.1)  {
+			# Put old database loading method here.
+			# 0.1 databases can be read by 0.2 rules.
+			}
+		else  {  # Current version: 0.2
 			# All lines should match this pattern.
 			# There should be no funny business here.
 			$line =~ /([\w_]+):([\w_]+): (.*)/
@@ -501,6 +509,33 @@ sub load_data  {
 
 sub dump_data  {
 	my ($file, $dbVersion) = @_;
+	
+	my @old;
+	my $read_fail;
+	# Load in up to the last 4 entries as backup
+	if (-e $file)  {
+		unless ( open (IN, '<', $file) )  {
+			warn "Unable to open $file for updating.\n";
+			$read_fail = 1;
+			}
+		
+		my $entry;
+		while (<IN>)  {
+			unless (/^\&\&/)  {
+				# Add the line to the current entry.
+				$entry .= $_;
+				next unless eof;
+				}
+			# Otherwise, push the whole entry to the list.
+			push @old, $entry;
+			$entry = '';
+			# Stop at 4.
+			last if (@old >= 4);
+			}
+		
+		close IN;
+		}
+	
 	
 	unless ( open (OUT, '>', "${file}.tmp") )  {
 		warn "Unable to write to ${file}.tmp\n";
@@ -532,10 +567,31 @@ sub dump_data  {
 			
 			}
 		}
+	
+	# Append old data as backup.
+	print OUT "&&\n$_" foreach ( @old );
+	
+	
 	unless ( close(OUT) )  {
 		warn "Warning: couldn't complete save to ${file}.tmp!";
 		return;
 		}
+	
+	# Don't replace the old file if there was a read error.
+	if ($read_fail)  {
+		# Try renaming?
+		if ( rename $file, "${file}.old" )  {
+			debug 1, "Renamed old database, as it could not be read for prepending.";
+			}
+		else  {
+			# This is all bad news and a sign something went very wrong.
+			# so we'll not be too thorough in handling it.
+			warn "Database file not replaced.  Leaving as ${file}.tmp ...";
+			return;
+			}
+		}
+	
+	
 	if ( rename "${file}.tmp", $file )  {
 		debug 1, "Dumped data to file.";
 		$lastdump = time;
