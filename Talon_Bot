@@ -74,7 +74,6 @@ my %cfg = (
 	port  => '6697',
 	user  => 'Invalid!',
 	auth  => 'Invalid!',
-	rules => 'No rules. | Just right.',
 	width => '25',
 	bot_color => '8A2BE2',
 	user_color => 'BBBBBB',
@@ -167,9 +166,6 @@ auth = $cfg{auth}
 #####################
 ##  Other Options  ##
 #####################
-
-# Channel rules.  **Change this to a file**
-#rules = $cfg{rules}
 
 # Specify the Twitch chat channel to connect to.
 # Default is to match the username.
@@ -284,7 +280,6 @@ while ( <HELP> )  {
 # Builtin command list
 my %command = (
 	units => \&units,
-	rule => \&rule,
 	help => \&help
 	);
 
@@ -646,7 +641,6 @@ else  {
 
 # Set up other variables.
 $columns = $cfg{width};
-my @rules = split ( /\s*\|\s*/, $cfg{rules} );
 
 
 
@@ -823,17 +817,6 @@ sub help  {
 			}
 		}
 	return;
-	}
-
-
-sub rule  {
-	my ( $user, $tags, $args ) = @_;
-	unless ( $args =~ /^\d+$/ and $args <= @rules )  {
-		&chat( "Invalid rule number." );
-		return;
-		}
-	
-	&chat("Rule $args: @rules[$args - 1]");
 	}
 
 

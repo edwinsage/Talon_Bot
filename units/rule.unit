@@ -1,0 +1,87 @@
+
+Command: !rule !rules
+
+Help: Usage: !rule [number] -- Displays rules.  If a number is given, only display that rule.|+|Advanced Usage: !rule new <rule text> -- Adds a new rule.|Advanced Usage: !rule set <number> <rule text> -- Sets the text of a specific rule number.|Advanced Usage: !rule delete <number> -- Deletes a rule.
+
+Code:
+
+
+# Default: display rules.
+unless ($args)  {
+	my $message;
+	
+	my @list = sort {$a <=> $b} keys %{$DATA};
+	
+	foreach ( @list )  {
+		debug 2,"accumulating rule $_";
+		# Append the rule.
+		$message .= "Rule $_: $DATA{$_} -- ";
+		}
+	
+	# Get rid of the final separator.
+	$message =~ s/ -- $//;
+	
+	&chat($message) if $message;
+	}
+# Next: Display a specific rule.
+elsif ( $args =~ /^\d+$/ )  {
+	if ( $DATA{$args} )  {
+		&chat("Rule $args: $DATA{$args}");
+		}
+	else  {
+		&chat("No such rule.");
+		}
+	}
+# Next: Add a new rule.
+elsif ( &admin_test($tags) and $args =~ /^new\s+(.*)/ )  {
+	# Create the rule in the lowest empty spot greater than zero.
+	my $number = 1;
+	$number++ while $DATA{$number};
+	
+	$DATA{$number} = $1;
+	
+	&chat("New rule added as rule $number.");
+	}
+# Next: Change a specific rule number.
+elsif ( &admin_test($tags) and $args =~ /^set\s+(\w+)\s+(.*?)$/ )  {
+	my ($number, $text) = ($1, $2);
+	
+	# $number should be a number.
+	unless ($number =~ /^\d+$/)  {
+		&chat("'$number' needs to be a number.");
+		return;
+		}
+	
+	# Add the rule.
+	$DATA{$number} = $text;
+	
+	&chat("Rule added.");
+	
+	}
+# Next: Delete a rule.
+elsif ( &admin_test($tags) and $args =~ /^delete\s+(.*)/ )  {
+	my $number = $1;
+	
+	# $number should be a number.
+	unless ($number =~ /^\d+$/)  {
+		&chat("'$number' needs to be a number.");
+		return;
+		}
+	
+	# Check if the rule exists.
+	unless ( $DATA{$number} )  {
+		&chat("Rule $number does not exist.");
+		return;
+		}
+	
+	# Remove the rule.
+	delete $DATA{$number};
+	
+	&chat("Rule removed.");
+	
+	}
+else  {
+	&chat("Invalid input.  Try !help rule");
+	}
+
+
