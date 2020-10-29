@@ -785,10 +785,12 @@ while ( <$sock> )  {
 ################
 
 sub units  {
+	# Show loaded units
+	# Enable and disable units
+	# Reload unit files
 	
-	# Totally haven't done this yet.
 	
-	# Does it just list the commands?
+	
 	
 	}
 
