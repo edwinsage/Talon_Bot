@@ -10,3 +10,6 @@ Talon_Bot.rc
 
 # Ignore generated database
 *.db
+
+# Ignore a testing unit
+TESTING.unit
