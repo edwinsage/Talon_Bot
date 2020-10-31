@@ -240,6 +240,8 @@ my %command = (
 my @command_list = keys %command;
 
 
+# Initialize help.
+my %help;
 
 
 
