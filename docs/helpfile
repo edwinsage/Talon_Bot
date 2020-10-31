@@ -1,3 +1,5 @@
+*Currently outdated, pending changes to units format*
+
 The helpfile is formatted as follows.  Help entries are contained in
 blocks, with every block terminating in a line starting with two
 ampersands.  Blank lines or lines containing only whitespace are ignored. 

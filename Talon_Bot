@@ -78,9 +78,8 @@ my %cfg = (
 	bot_color => '8A2BE2',
 	user_color => 'BBBBBB',
 	unit_temp => 'units.tmp',
-	data_file => 'data.db',
 	
-	helpfile => 'userhelp.txt'
+	data_file => 'data.db'
 	);
 
 # Getopts variables
@@ -150,10 +149,6 @@ auth = $cfg{auth}
 
 # Log file for raw IRC traffic.  Useful for debugging.
 #rawlog = $cfg{rawlog}
-
-# File containing help text for commands.
-# See docs/helpfile for details.
-#helpfile = $cfg{helpfile}
 
 # Persistent storage for units data.
 #data_file = $cfg{data_file}
@@ -231,48 +226,6 @@ if ( $cfg{chatlog} )  {
 	open ( LOG, ">>", $cfg{chatlog} )
 	  or die "Could not open $cfg{chatlog} for appending.";
 	LOG->autoflush(1);
-	}
-
-
-# Load help file.
-open ( HELP, "<", $cfg{helpfile} )
-    or die "Could not open help file $cfg{helpfile}.";
-my %help;
-my @shlorp;
-while ( <HELP> )  {
-	# Skip checks if we're at the end.
-	unless (eof)  {
-		
-		# Ignore blank lines.
-		next if /^\s*$/;
-		push ( @shlorp, $_ );
-		
-		# Get one block at a time.
-		next unless /^\&\&/;
-		
-		# Get rid of the ampersands.
-		pop @shlorp;
-		}
-	
-	# Make sure we got something.
-	next unless @shlorp;
-	
-	# First line should be the command(s).
-	my $line = shift @shlorp;
-	my @keys = split ( /\s+/, $line );
-	
-	# Check and make sure something isn't obviously wrong.
-	foreach ( @keys )  {
-		die "Error parsing help file: $_ is not a proper command." unless /^!\w+$/;
-		s/!//;
-		
-		}
-	
-	# Add lines to help text.
-	my @temp = @shlorp;
-	$help{"$_"} = \@temp foreach @keys;
-	@shlorp = ();
-	
 	}
 
 
