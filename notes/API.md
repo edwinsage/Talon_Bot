@@ -58,7 +58,7 @@ timers
 other triggers?
 
 
-All calls to commands are provided with three variables: $user, $tags, and $args
+All calls to commands are provided with four variables: $user, $tags, $args, and $cfg
 
 $user is the Twitch username of the user who invoked the command
 
@@ -70,6 +70,7 @@ if (&admin_test{$tags}) { do stuff }
 $args is everything the user typed after the command, minus the leading space. 
 It may be empty.
 
+$cfg is a hash reference for the config read at startup.
 
 
 use whatever local variables you want

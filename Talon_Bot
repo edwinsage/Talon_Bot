@@ -427,7 +427,7 @@ foreach my $file (@units)  {
 		# Create the subroutine.
 		debug 1, 'Pushing subroutine to @output';
 		push @output, "sub cmd_$main  {\n\t"
-		    . 'my ( $user, $tags, $args ) = @_;'
+		    . 'my ( $user, $tags, $args, $cfg ) = @_;'
 		    . "\n";
 		
 		foreach (@shlorp)  {
@@ -761,7 +761,7 @@ while ( <$sock> )  {
 			#say $c, $args;
 			$c =~ tr/A-Z/a-z/;
 			# Execute command if it is in the list.
-			&{$command{$c}}( $user, \%tag, $args ) if ( exists($command{$c}) );
+			&{$command{$c}}( $user, \%tag, $args, \%cfg ) if ( exists($command{$c}) );
 			}
 		
 		
