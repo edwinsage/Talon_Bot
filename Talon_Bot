@@ -843,6 +843,7 @@ sub signal_handler  {
 	say 'Logging off.';
 	say $sock 'QUIT';
 	&logoff;
+	wait;
 	exit;
 	}
 
