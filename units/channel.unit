@@ -1,0 +1,116 @@
+
+Command: !channel !chan
+
+
+Help: +|Advanced Usage: !channel save [name], !channel load [name] -- Saves or loads a channel configuration.  This includes the current title, game, and tags.
+
+Code:
+
+# Admin only
+return unless( &admin_test($tags) );
+
+# Check for essential config
+unless ($$cfg{client_id})  {
+	&chat('Twitch Client ID not set in config file.  You must register a client as a Twitch developer to use this feature.');
+	return;
+	}
+unless ($$cfg{client_secret})  {
+	&chat('Twitch Client secret not set in config file.  You must register a client as a Twitch developer to use this feature.');
+	return;
+	}
+unless ($$cfg{user_access_token})  {
+	&chat('Twitch user token not set in config file.  You must authenticate this app on Twitch to use this feature.  (Implementation pending)');
+	return;
+	}
+
+# Create the connection handle.
+my $handle = HTTP::Tiny->new( verify_SSL => 'true' );
+
+# Create the auth "object"
+my $auth = {
+	client_id => $$cfg{client_id},
+	client_secret => $$cfg{client_secret},
+	user_access_token => $$cfg{user_access_token},
+	user_refresh_token => $$cfg{user_refresh_token},
+	
+	handle => $handle
+	};
+$$auth{app_access_token} = $DATA{app_access_token} if $DATA{app_access_token};
+$$auth{user_access_token} = $DATA{user_access_token} if $DATA{user_access_token};
+$$auth{user_refresh_token} = $DATA{user_refresh_token} if $DATA{user_refresh_token};
+
+# Get channel ID if needed.
+my $user = substr $$cfg{channel}, 1;
+$DATA{channel_id} = Twitch::get_user_id( $auth, $user ) unless $DATA{channel_id};
+debug 1,"Channel ID: $DATA{channel_id}";
+
+
+my @args = split / /, $args;
+
+# Actions!
+if ($args[0] eq 'save')  {BLOCK:{
+	# There needs to be a name to save as.
+	unless ($args[1] =~ /^\w+$/)  {
+		&chat("You need to specify a name to save this configuration under.  See !help channel for more info.");
+		last BLOCK;
+		}
+	
+	# Get the information:
+	#   game_id, title, tags
+	my $tags = Twitch::get_tags($auth, $DATA{channel_id});
+	my $info = Twitch::get_channel_info($auth, $DATA{channel_id});
+	
+	# Build the string that will get saved in DATA.
+	my $string = "tags:";
+	$string .= "$_," foreach (@$tags);
+	# Remove the last comma, if it exists.
+	$string =~ s/,$//;
+	# Add the remaining info.
+	$string .= ";game_id:$$info{game_id};title:$$info{title}";
+	
+	# Store it!
+	debug 1,"Saving info as the string: $string";
+	$DATA{"save_$args[1]"} = $string;
+	
+	}}
+elsif ($args[0] eq 'load')  {BLOCK:{
+	# There needs to be a name to load.
+	unless ($args[1] =~ /^\w+$/)  {
+		&chat("You need to specify a name to save this configuration under.  See !help channel for more info.");
+		last BLOCK;
+		}
+	
+	# That name needs to exist.
+	unless ($DATA{"save_$args[1]"})  {
+		&chat("No configuration with that name exists.  Try !channel list");
+		last BLOCK;
+		}
+	
+	# Create the hash of data to send.
+	my ($hash, $tags);
+	($tags, $$hash{game_id}, $$hash{title}) =
+	    $DATA{"save_$args[1]"} =~ /^tags:(.*?);game_id:(.*?);title:(.*)/;
+	
+	unless ($$hash{game_id})  {
+		debug 1,qq|Failure reading data from $DATA{"save_$args[1]"}|;
+		&chat("Failed to read data.");
+		last BLOCK;
+		}
+	
+	my @tags = split /,/, $tags;
+	
+	Twitch::put_channel_info($auth, $DATA{channel_id}, $hash);
+	
+	Twitch::put_tags($auth, $DATA{channel_id}, @tags);
+	
+	
+	
+	}}
+
+# Store any tokens created during the call.
+$DATA{app_access_token} = $$auth{app_access_token} if $$auth{app_access_token};
+$DATA{user_access_token} = $$auth{user_access_token} if $$auth{user_access_token};
+$DATA{user_refresh_token} = $$auth{user_refresh_token} if $$auth{user_refresh_token};
+
+
+
