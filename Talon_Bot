@@ -29,6 +29,8 @@ use lib './';
 use IO::Socket::SSL;
 use Text::Wrap qw(wrap $columns);
 use Getopt::Long;
+use HTTP::Tiny;
+use Twitch;
 
 # Predeclare debug prototype.
 sub debug ($$);
@@ -44,7 +46,7 @@ $0 is a multipurpose bot for Twitch chat.
 Options:
     -h   --help         Print this help text
     -c   --config       Specify a config file other than .Talon_Bot.rc
-    -t   --test         Don't actually connect to Twitch, just run interactively
+    -t   --test         Don't connect to Twitch chat, just run interactively
     -d   --debug        Enable extra debug output
 
 END_HELP
