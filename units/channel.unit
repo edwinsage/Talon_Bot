@@ -57,12 +57,12 @@ if ($args[0] eq 'save')  {BLOCK:{
 	
 	# Get the information:
 	#   game_id, title, tags
-	my $tags = Twitch::get_tags($auth, $DATA{channel_id});
+	my @tags = Twitch::get_tags($auth, $DATA{channel_id});
 	my $info = Twitch::get_channel_info($auth, $DATA{channel_id});
 	
 	# Build the string that will get saved in DATA.
 	my $string = "tags:";
-	$string .= "$_," foreach (@$tags);
+	$string .= "$_," foreach (@tags);
 	# Remove the last comma, if it exists.
 	$string =~ s/,$//;
 	# Add the remaining info.
