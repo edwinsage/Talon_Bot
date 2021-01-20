@@ -1,0 +1,52 @@
+
+Command: !shout !so !cat
+
+Help: !shout is a moderator-only command that sends premade messages, or shout-outs.|+|Advanced Usage: !shout add [keyword] [message text...] -- Adds a new shout-out.  [keyword] must be a single word with no punctuation other than underscore.|Advanced Usage: !shout [keyword] -- Displays a saved shout-out.|Advanced Usage: !shout del [keyword] -- Removes an existing shout-out message.|Advanced Usage: !shout list -- List all keywords currently saved.
+
+
+Code:
+
+# Mods only.
+return unless &admin_test($tags);
+
+my $message;
+
+# Default to list.
+if ( $args eq '' or $args eq 'list' )  {
+	my @list = sort keys %{$DATA};
+	
+	# Default if no messages found.
+	$message = 'No saved shout-outs';
+	if (@list)  {
+		$message = 'Saved shout-outs: '
+		    . join( ', ', @list)
+		    . '.';
+		}
+	}
+elsif ( $args =~ /^rem\s+(\w+)$/ )  {
+	$message = 'No such keyword found to delete!';
+	if ( $DATA{$1} )  {
+		$message = "Removing $1.";
+		delete $DATA{$1};
+		}
+	}
+elsif ( $args =~ /^add\s+(\w+)\s+(.+)$/a )  {
+	$message = 'Updating existing shout-out...' if $DATA{$1};
+	
+	$DATA{$1} = $2;
+	
+	$message .= 'Saved!';
+	
+	}
+elsif ( $DATA{$args} )  {
+	$message = "$DATA{$args}";
+	}
+else  {
+	$message = 'Command not recognized.  See !help shout.';
+	}
+
+
+
+
+# The actual command result:
+&chat($message);
