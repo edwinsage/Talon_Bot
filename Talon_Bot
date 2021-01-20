@@ -19,7 +19,7 @@ my $version = '0.2.0-alpha';
 # This number should be changed to the current major.minor version number any
 # time any change is made to the database format that is not fully forwards and
 # backwards compatible with the previous parsing code.
-my $dbVersion = '0.2';
+my $dbVersion = '0.3';
 
 
 
@@ -450,9 +450,9 @@ sub load_data  {
 		# Old code first.
 		if ($req_version < 0.1)  {
 			# Put old database loading method here.
-			# 0.1 databases can be read by 0.2 rules.
+			# 0.1 and 0.2 databases can be read by 0.3 rules.
 			}
-		else  {  # Current version: 0.2
+		else  {  # Current version: 0.3
 			# All lines should match this pattern.
 			# There should be no funny business here.
 			$line =~ /([\w_]+):([\w_]+): (.*)/
@@ -508,11 +508,11 @@ sub dump_data  {
 	debug 2,"starting hash dump $data{boop}{boop}";
 	# %data is a hash of hashes.  Double-loop through it.
 	foreach my $unit (keys %data)  {
-		debug 2,"Looping for $unit";
+		debug 2,"Looping for unit $unit";
 		foreach my $var ( keys %{$data{$unit}} )  {
-			debug 2,"Loop for $var in $unit";
+			debug 2,"Loop for variable $var in $unit";
 			# These keys need checking.  Alphanumeric and _ only.
-			unless ($var =~ /^[\w_]+$/)  {
+			unless ($var =~ /^\w+$/a)  {
 				warn "Could not store value $unit:$var - only alphanumeric characters and underscore are allowed for names.";
 				next;
 				}
