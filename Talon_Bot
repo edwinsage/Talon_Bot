@@ -63,12 +63,16 @@ END_HELP
 ##############
 
 # Make a list of places to check, until one is found.
+# Talon_Bot will use the first available file from this list,
+# unless a filename is given with --config.
 my @configs = (
     '.Talon_Bot.rc',
     'Talon_Bot.rc',
     $ENV{'HOME'} . '/.Talon_Bot.rc',
     $ENV{'HOME'} . '/Talon_Bot.rc'
     );
+
+
 
 # Set config defaults.
 my %cfg = (
@@ -84,7 +88,9 @@ my %cfg = (
 	data_file => 'data.db'
 	);
 
-# Getopts variables
+
+
+# Parse command line options.
 Getopt::Long::Configure("bundling");
 my ( $config_file, $test , $debug );
 
@@ -93,6 +99,8 @@ GetOptions( "test|t" => \$test,
 	    "debug|d+" => \$debug,
 	    "help|h" => \&usage
 	    );
+
+
 
 # Let's locate our config file.
 # First priority is given to a command line argument.
@@ -118,8 +126,12 @@ if ($found)  {
 	}
 else  {
 	# Create a new config file if none were found.
+	# The block below contains the template for a new
+	# config file, which will be filled with the default
+	# config options specified above.
 	
-	# Pick the first choice.
+	# When writing a new file, default to a specified filename,
+	# or the first choice in the list of filenames to check.
 	$config_file = $configs[0] unless $config_file;
 	say "Creating new config file $config_file.";
 	open( CONFIG, '>', $config_file )
@@ -191,6 +203,7 @@ END_CONFIG
 	}
 
 
+
 # Read config from file.
 open ( FILE, $config_file ) or die "Could not find $config_file";
 while (<FILE>)  {
@@ -206,6 +219,7 @@ while (<FILE>)  {
 close FILE;
 
 
+
 # Check essential options
 unless ($test)  {
 	die "'user' not set in $config_file!" if ( $cfg{user} eq 'Invalid!' );
@@ -213,9 +227,11 @@ unless ($test)  {
 	}
 
 
+
 # Handle channel name
 $cfg{channel} = $cfg{user} unless $cfg{channel};
 $cfg{channel} = '#' . $cfg{channel} unless ( $cfg{channel} =~ /^#/ );
+
 
 
 # Open log files, if configured.
@@ -232,7 +248,7 @@ if ( $cfg{chatlog} )  {
 
 
 
-# Builtin command list
+# Create the command list, starting with builtins.
 my %command = (
 	units => \&units,
 	help => \&help
@@ -643,6 +659,7 @@ else  {
 	# Only load modules if needed.
 	eval "use WrapHandles;use Symbol";
 	$sock = Symbol::gensym;
+	# The following lets us use STDIN and STDOUT like a socket.
 	tie *$sock, 'WrapHandles', \*STDIN, \*STDOUT;
 	}
 
