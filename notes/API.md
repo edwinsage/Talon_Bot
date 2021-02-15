@@ -41,6 +41,13 @@ This will get moved to docs/ once there's something worth releasing here.
     # plus underscore, and the value is a string without newlines.
     $DATA{note_to_self} = "You really wanted yourself to remember $args";
     
+    # You can put subroutines in your unit file and they will be useable
+    # normally.  To prevent naming conflicts, you should name any such internal
+    # routines as "sub_[unit]_[whatever], eg. sub_test_detonate in the 'test'
+    # unit.
+
+
+
     &&
     
     Command: !another_command
