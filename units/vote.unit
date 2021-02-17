@@ -9,7 +9,7 @@ Code:
 # First run only
 unless ($VARS{initialized})  {
 	debug 1,"Initializing poll...";
-	&sub_vote_load;
+	&sub_vote_load();
 	${VARS{initialized}}++;
 	}
 
@@ -162,7 +162,7 @@ unless ( $args =~ /^[\d\s]*$/ )  {
 
 # Store votes by user-id, to allow easy changing.
 $VARS{votes}{$tags->{"user-id"}} = $args;
-&sub_vote_save;
+&sub_vote_save();
 &chat("Vote received.");
 
 
