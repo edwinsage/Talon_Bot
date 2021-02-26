@@ -82,7 +82,7 @@ sub create_app_token  {
 		}
 	
 	# Get the token.
-	$$auth{app_access_token} = $$res{content} =~ /"access_token":"(.*?)"/;
+	($$auth{app_access_token}) = $$res{content} =~ /"access_token":"(.*?)"/;
 	
 	}
 
@@ -217,11 +217,12 @@ sub twitch_app_request  {
 	my $res = $$auth{handle}->request($method, $url,
 	    {headers => $headers,
 	     content => $content});
-	#say "Full response to user info request:";
-	#say "$_: $$res{$_}" foreach (keys %$res);
+	#say "Full headers received from user info request:";
+	#say " $_: $$res{headers}{$_}" foreach (keys %{$$res{headers}});
 	
 	
-	if ($$res{header}{'www-authenticate'} =~ /invalid_token/)  {
+	if ($$res{status} eq '401')  {
+		say "Refreshing token";
 		&create_app_token($auth);
 		$$headers{'Authorization'} = "Bearer $$auth{app_access_token}";
 		$res = $$auth{handle}->request($method, $url,
@@ -231,8 +232,9 @@ sub twitch_app_request  {
 	
 	
 	unless ($$res{success})  {
-		warn "Twitch request for $url failed.  Full response:";
-		warn "$_: $$res{$_}\n" foreach keys %$res;
+		my $msg;
+		$msg .=  "  $_: $$res{$_}\n" foreach keys %$res;
+		warn "Twitch request for $url failed.  Full response:\n$msg";
 		}
 	
 	return $res;
