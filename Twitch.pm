@@ -255,11 +255,15 @@ sub twitch_user_request  {
 	# HTTP::Tiny cannot handle PATCH requests.
 	my $res;
 	if ($method eq 'PATCH')  {
+		# "Escape" single quotes
+		$content =~ s/'/'"'"'/g; #'# Fix syntax highlighting
+		
 		my $command = "curl --silent -X PATCH \"$url\" "
 		    . "-H 'Client-Id: $$auth{client_id}' "
 		    . "-H 'Authorization: Bearer $$auth{user_access_token}' "
 		    . "-H 'Content-Type: application/json' "
 		    . "--data-raw '$content'";
+		say $command;
 		$res = `$command`;
 		if ($res =~ /Invalid OAuth/)  {
 			&refresh_token($auth);
