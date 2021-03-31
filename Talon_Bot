@@ -83,7 +83,7 @@ my %cfg = (
 	width => '25',
 	bot_color => '8A2BE2',
 	user_color => 'BBBBBB',
-	unit_temp => 'units.tmp',
+	tempfile_units => 'units.tmp',
 	
 	data_file => 'data.db'
 	);
@@ -168,7 +168,7 @@ auth = $cfg{auth}
 #data_file = $cfg{data_file}
 
 # Temporary file for units code.
-#unit_temp = $cfg{unit_temp}
+#tempfile_units = $cfg{tempfile_units}
 
 
 
@@ -194,6 +194,13 @@ auth = $cfg{auth}
 # These should not need changing.
 #host = $cfg{host}
 #port = $cfg{port}
+
+
+
+###################
+##  Unit Config  ##
+###################
+
 END_CONFIG
 	close CONFIG;
 	chmod 0600, $config_file
@@ -421,7 +428,7 @@ foreach my $file (@units)  {
 
 
 # Write the result to a temporary file.
-open ( UNITS, ">", $cfg{unit_temp} );
+open ( UNITS, ">", $cfg{tempfile_units} );
 print UNITS <<'END_OF_DATA_SUBS';
 use v5.20;
 
@@ -593,14 +600,14 @@ close UNITS;
 
 ### Run the units file
 
-my $return = do $cfg{unit_temp};
+my $return = do $cfg{tempfile_units};
 if ($return)  {
-	debug 1,"Loaded $cfg{unit_temp} successfully.";
+	debug 1,"Loaded $cfg{tempfile_units} successfully.";
 	}
 else  {
-	die "Couldn't parse $cfg{unit_temp}: $@" if $@;
-	die "Couldn't do $cfg{unit_temp}: $!" unless defined $return;
-	die "Couldn't run $cfg{unit_temp}";
+	die "Couldn't parse $cfg{tempfile_units}: $@" if $@;
+	die "Couldn't do $cfg{tempfile_units}: $!" unless defined $return;
+	die "Couldn't run $cfg{tempfile_units}";
 	}
 
 
