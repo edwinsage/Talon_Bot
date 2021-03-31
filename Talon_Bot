@@ -84,6 +84,7 @@ my %cfg = (
 	bot_color => '8A2BE2',
 	user_color => 'BBBBBB',
 	tempfile_units => 'units.tmp',
+	unit_matrix_message => 'Not configured.  Please edit your Talon Bot config file.',
 	
 	data_file => 'data.db'
 	);
@@ -200,6 +201,9 @@ auth = $cfg{auth}
 ###################
 ##  Unit Config  ##
 ###################
+
+# The message to display for the !matrix command.
+#unit_matrix_message = $cfg{unit_matrix_message}
 
 END_CONFIG
 	close CONFIG;

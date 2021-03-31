@@ -1,0 +1,9 @@
+
+Command: !matrix !discord
+
+Help: Displays information for the channel's Matrix server.
+
+Code:
+
+&chat($$cfg{unit_matrix_message});
+return;
