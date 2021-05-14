@@ -202,6 +202,15 @@ auth = $cfg{auth}
 ##  Unit Config  ##
 ###################
 
+# If this option is uncommented, then only the listed unit files will load.
+# The default is to load all available unit files.
+#unit_whitelist = rule, shout, vote
+
+# Any unit files listed here will never be loaded.
+#unit_blacklist = 
+
+
+
 # The message to display for the !matrix command.
 #unit_matrix_message = $cfg{unit_matrix_message}
 
@@ -280,21 +289,53 @@ my %help;
 #############
 
 # Load units.
-my @units = <units/*.unit>;
+my @unit_files = <units/*.unit>;
 my @output;
 
-debug 1,"Units files: @units";
+debug 1,"Unit files: " . join (', ', @unit_files);
 
-# Parse each one.
-foreach my $file (@units)  {
-	unless (open ( UNIT, "<", $file ))  {
-		warn "Could not open unit file $file for reading.";
-		next;
-		}
+
+# Build the list of units to load.
+my %units;
+
+foreach my $file (@unit_files)  {
 	my ($namespace) = $file =~ /(\w+)\.unit$/;
 	unless ( $namespace )  {
 		warn "Invalid unit name $file.  Units must be named using only"
 		    ."alphanumeric characters and underscore.  Skipping...";
+		next;
+		}
+	$units{$namespace} = 1;
+	
+	}
+
+if (defined $cfg{unit_whitelist})  {
+	my @white = split /,\s*/, $cfg{unit_whitelist};
+	my %whitelist;
+	# This line actually makes a hash.
+	@whitelist{@white} = (1) x @white;
+	foreach (keys %units)  {
+		next if $whitelist{$_};
+		debug 1,"Unit $_ is not on whitelist, skipping...";
+		delete $units{$_};
+		}
+	}
+
+my @blacklist = split /,\s*/, $cfg{unit_blacklist};
+foreach (@blacklist)  {
+	next unless $units{$_};
+	debug 1,"Unit $_ is blacklisted, skipping...";
+	delete $units{$_};
+	}
+
+
+
+# Parse each one.
+foreach my $unit (keys %units)  {
+	my $file = 'units/' . $unit . '.unit';
+	unless (open ( UNIT, "<", "$file" ))  {
+		warn "Could not open unit file $file for reading.";
+		delete $units{$unit};
 		next;
 		}
 	
@@ -317,7 +358,7 @@ foreach my $file (@units)  {
 		# Get rid of the ampersands.
 		pop @shlorp if /^\&\&/;
 		
-		debug 1,"Shlorped";
+		debug 2,"Shlorped";
 		# Make sure we got something.
 		next unless @shlorp;
 		
@@ -334,7 +375,7 @@ foreach my $file (@units)  {
 			
 			
 			if ( /^Code:/ )  {
-				debug 1,"Code block start";
+				debug 2,"Code block start";
 				last;
 				}
 			elsif ( /(.*?): (.*)/ ) {
@@ -416,8 +457,8 @@ foreach my $file (@units)  {
 		
 		foreach (@shlorp)  {
 			# Translate to proper code
-			s/([\$\%]\{?)VARS/$1vars{$namespace}/g;
-			s/([\$\%]\{?)DATA/$1data{$namespace}/g;
+			s/([\$\%]\{?)VARS/$1vars{$unit}/g;
+			s/([\$\%]\{?)DATA/$1data{$unit}/g;
 			
 			
 			push ( @output, "\t$_\n" );
