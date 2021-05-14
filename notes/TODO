@@ -1,7 +1,9 @@
 Things to do still:
 
 * Actually make a units command, include github link and other info
+* Convert license to AGPL
 * Pick a method for putting multiple lines of text in a file, like help, rules, etc.
+* Make debug messages more informative and standardized
 
 
 Possible ideas for later:
