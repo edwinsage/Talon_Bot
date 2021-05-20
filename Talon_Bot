@@ -2,18 +2,18 @@
 
 # Talon_Bot, a multipurpose bot for Twitch chat
 my $version = '0.3.0-alpha';
-# Copyright 2020 Michael Pirkola
+# Copyright 2020, 2021 Michael Pirkola
 
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of version 3 of the GNU General Public License as
+# it under the terms of version 3 of the GNU Affero General Public License as
 # published by the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Affero General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # This number should be changed to the current major.minor version number any
@@ -76,6 +76,7 @@ my @configs = (
 
 # Set config defaults.
 my %cfg = (
+	source_code_url => 'https://github.com/edwinsage/Talon_Bot',
 	host  => 'irc.chat.twitch.tv',
 	port  => '6697',
 	user  => 'Invalid!',
@@ -196,6 +197,10 @@ auth = $cfg{auth}
 #host = $cfg{host}
 #port = $cfg{port}
 
+# Location of the source code for the bot.  If you make changes to the software,
+# you must host the code somewhere and change this link to point to it.
+#source_code_url = $cfg{source_code_url}
+
 
 
 ###################
@@ -271,6 +276,7 @@ if ( $cfg{chatlog} )  {
 # Create the command list, starting with builtins.
 my %command = (
 	units => \&units,
+	license => \&license,
 	help => \&help
 	);
 
@@ -816,6 +822,17 @@ sub units  {
 	# Reload unit files
 	
 	
+	
+	
+	}
+
+
+
+sub license  {
+	&chat("Talon_Bot is distributed under the terms of the GNU Affero General Public License.  " .
+	      "This means that you, the user, have the right to download, modify, and run the " .
+	      "software yourself if you wish, under the same terms.  " .
+	      "Source code is available at $cfg{source_code_url}");
 	
 	
 	}
