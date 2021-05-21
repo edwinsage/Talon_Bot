@@ -1,10 +1,15 @@
 Things to do still:
 
 * Actually make a units command, include github link and other info
-* Convert license to AGPL
+** Turn units on and off while running
+** Save on/off configuration
+* Fix namespace issues with unit-defined subroutines - need a non \w separator
+** There are probably also scoping issues with defining subroutines this way
 * Pick a method for putting multiple lines of text in a file, like help, rules, etc.
 * Make debug messages more informative and standardized
-
+* Create CGI listener for EventSub messages
+** With a web interface?
+** Maybe it runs the IRC bot when you go live?
 
 Possible ideas for later:
 
@@ -12,6 +17,4 @@ Possible ideas for later:
 ** !vote could handle bare numbers; "1" rather than "!vote 1"
 * Have main loop do a non-blocking check for input, to allow for timers
 * Make an installer, once things get more stable
-
-
-
+* Go multi-user
