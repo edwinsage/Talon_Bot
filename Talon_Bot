@@ -821,7 +821,7 @@ sub units  {
 	# Enable and disable units
 	# Reload unit files
 	
-	
+	&chat("!units command not yet implemeted, sorry.");
 	
 	
 	}
@@ -845,8 +845,14 @@ sub help  {
 	$args =~ s/^\!//;
 	
 	
+	if ($args eq 'units')  {
+		&units;
+		}
+	elsif ($args eq 'license')  {
+		&license;
+		}
 	# Default help
-	unless ( $help{$args} )  {
+	elsif ( !($help{$args}) )  {
 		#!# Find a better way to list commands.
 		&chat("Available commands: !" . join (', !', @command_list)
 		    . ".  For more information on a specific command, type '!help [command]'.");
