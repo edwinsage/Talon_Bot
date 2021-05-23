@@ -1,5 +1,6 @@
 Things to do still:
 
+* Make a unit for creating simple commands
 * Actually make a units command, include github link and other info
 ** Turn units on and off while running
 ** Save on/off configuration
