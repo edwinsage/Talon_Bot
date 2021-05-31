@@ -8,9 +8,6 @@ Things to do still:
 ** There are probably also scoping issues with defining subroutines this way
 * Pick a method for putting multiple lines of text in a file, like help, rules, etc.
 * Make debug messages more informative and standardized
-* Create CGI listener for EventSub messages
-** With a web interface?
-** Maybe it runs the IRC bot when you go live?
 
 Possible ideas for later:
 
