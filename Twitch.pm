@@ -52,7 +52,7 @@ use strict;
 use v5.20;
 
 use HTTP::Tiny;
-use JSON::Parse 'parse_json';
+use JSON 'decode_json';
 
 
 
@@ -164,7 +164,7 @@ sub get_channel_info  {
 	my $info = $$res{content};
 	$info =~ s/^\{"data":\[(\{.*\})\]\}$/$1/;
 	
-	my $hash = parse_json($info);
+	my $hash = decode_json($info);
 	
 	
 	return $hash;
