@@ -767,7 +767,8 @@ while ( <$sock> )  {
 	# Parse tags.
 	$tags =~ s/^@//;
 	my @tags = split /;/, $tags;
-	my %tag;
+	# Convert $tags to a hash reference
+	$tags = {};
 	foreach ( @tags )  {
 		# Remove trailing spaces
 		s/\s+$//;
@@ -778,12 +779,12 @@ while ( <$sock> )  {
 			next;
 			}
 		my ( $key, $value ) = split /\s*=\s*/;
-		$tag{$key} = $value;
+		$$tags{$key} = $value;
 		}
 	
 	if ( $cmd eq 'PRIVMSG' )  {
 		# Print message.
-		&term_out( $user, \%tag, $msg );
+		&term_out( $user, $tags, $msg );
 		
 		# Log chat messages.
 		print LOG "$time $user: $msg\n" if $cfg{chatlog};
@@ -794,7 +795,7 @@ while ( <$sock> )  {
 			#say $c, $args;
 			$c =~ tr/A-Z/a-z/;
 			# Execute command if it is in the list.
-			&{$command{$c}}( $user, \%tag, $args, \%cfg ) if ( exists($command{$c}) );
+			&{$command{$c}}( $user, $tags, $args, \%cfg ) if ( exists($command{$c}) );
 			}
 		
 		
@@ -880,13 +881,13 @@ sub help  {
 
 
 sub term_out  {
-	my ( $user, $tag, $msg ) = @_;
+	my ( $user, $tags, $msg ) = @_;
 	my $status;
 	# Check for mod status
-	$status = '*' if &admin_test($tag);
+	$status = '*' if &admin_test($tags);
 	
 	# Get user color.
-	my ( $cr, $cg, $cb ) = %$tag{color} =~ /#(..)(..)(..)/;
+	my ( $cr, $cg, $cb ) = $$tags{color} =~ /#(..)(..)(..)/;
 	$cr = substr( $cfg{user_color}, 0, 2 ) unless defined $cr;
 	$cg = substr( $cfg{user_color}, 2, 2 ) unless defined $cg;
 	$cb = substr( $cfg{user_color}, 4, 2 ) unless defined $cb;
@@ -922,8 +923,8 @@ sub whisper  {
 
 
 sub admin_test  {
-	my ($tag) = @_;
-	return 1 if ( $tag->{badges} =~ /(broadcaster|moderator)/ );
+	my ($tags) = @_;
+	return 1 if ( $tags->{badges} =~ /(broadcaster|moderator)/ );
 	return 0;
 	}
 

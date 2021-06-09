@@ -2,6 +2,10 @@
 *.log
 
 # Ignore config files
+Talon_Bot.conf
+.Talon_Bot.conf
+
+# Ignore old config files
 .Talon_Bot.rc
 Talon_Bot.rc
 
