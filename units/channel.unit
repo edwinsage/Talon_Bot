@@ -2,7 +2,7 @@
 Command: !channel !chan
 
 
-Help: +|Advanced Usage: !channel save [name], !channel load [name] -- Saves or loads a channel configuration.  This includes the current title, game, and tags.
+Help+: Advanced Usage: !channel save [name], !channel load [name] -- Saves or loads a channel configuration.  This includes the current title, game, and tags.
 
 Code:
 

@@ -6,7 +6,10 @@ This will get moved to docs/ once there's something worth releasing here.
 
     Command: !command_name !alternate_name !com_name
     
-    Help: Display this help when users type "!help command_name"|Multiple lines are separated by a vertical bar.|This is line 3.
+    Help: Display this help when users type "!help command_name"
+    Help: Multiple lines can be shown by repeating the Help header.
+    Help: This is line 3.
+    Help+: This will only be shown when a moderator asks for help on this command.
     
     Code:
     # This is now a block of Perl code.
@@ -70,7 +73,7 @@ All calls to commands are provided with four variables: $user, $tags, $args, and
 $user is the Twitch username of the user who invoked the command
 
 $tags is a hash reference to all of the Twitch tags passed with the message. 
-These are accessible as, for example, $tags{badges}. 
+These are accessible as, for example, $$tags{badges}. 
 The &admin_test subroutine takes $tags as its argument:
 if (&admin_test{$tags}) { do stuff }
 

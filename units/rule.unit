@@ -1,7 +1,10 @@
 
 Command: !rule !rules
 
-Help: Usage: !rule [number] -- Displays rules.  If a number is given, only display that rule.|+|Advanced Usage: !rule new <rule text> -- Adds a new rule.|Advanced Usage: !rule set <number> <rule text> -- Sets the text of a specific rule number.|Advanced Usage: !rule delete <number> -- Deletes a rule.
+Help: Usage: !rule [number] -- Displays rules.  If a number is given, only display that rule.
+Help+: Advanced Usage: !rule new <rule text> -- Adds a new rule.
+Help+: Advanced Usage: !rule set <number> <rule text> -- Sets the text of a specific rule number.
+Help+: Advanced Usage: !rule delete <number> -- Deletes a rule.
 
 Code:
 

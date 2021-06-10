@@ -275,14 +275,12 @@ if ( $cfg{chatlog} )  {
 
 
 # Create the command list, starting with builtins.
-my %command = (
+my %command_list = (
 	units => \&units,
 	license => \&license,
 	help => \&help
 	);
 
-# Used for listing commands
-my @command_list = keys %command;
 
 
 # Initialize help.
@@ -312,7 +310,7 @@ foreach my $file (@unit_files)  {
 		    ."alphanumeric characters and underscore.  Skipping...";
 		next;
 		}
-	$units{$namespace} = 1;
+	$units{$namespace}{activated} = 1;
 	
 	}
 
@@ -348,7 +346,7 @@ foreach my $unit (keys %units)  {
 	
 	# Shlorp in the file by sections.
 	my @shlorp;
-	BLOCK: while ( <UNIT> )  {
+	UNIT_FILE: while ( <UNIT> )  {
 		debug 2,"Line read from unit file";
 		# Skip checks if we're at the end.
 		debug 3, "Check1";
@@ -375,6 +373,8 @@ foreach my $unit (keys %units)  {
 		
 		# Parse commands
 		my %header;
+		my @help;
+		my @help_plus;
 		while (@shlorp)  {
 			# Peel off lines until we hit the code block.
 			$_ = shift @shlorp;
@@ -384,6 +384,12 @@ foreach my $unit (keys %units)  {
 			if ( /^Code:/ )  {
 				debug 2,"Code block start";
 				last;
+				}
+			elsif ( /^Help: (.*)/ )  {
+				push @help, $1;
+				}
+			elsif ( /^Help\+: (.*)/ )  {
+				push @help_plus, $1;
 				}
 			elsif ( /(.*?): (.*)/ ) {
 				$header{$1} = $2;
@@ -420,39 +426,43 @@ foreach my $unit (keys %units)  {
 		
 		# Add the command to the command hash.
 		debug 1,"Adding command $main";
-		foreach ( @keys )  {
-			if ( !(/^!\w+$/) )  {
-				warn "Error parsing unit file: $_ is not a proper command.";
-				next BLOCK;
+		
+		foreach my $new_cmd ( @keys )  {
+			if ( !($new_cmd =~ /^!\w+$/) )  {
+				warn "Error parsing unit $unit: $new_cmd is not a proper command name.";
+				next;
 				}
-			s/!//;
-			if (defined $command{$_})  {
-				warn "Command name $_ already exists.";
-				next BLOCK if ( $_ eq $main );
+			$new_cmd =~ s/!//;
+			
+			# Check if a command with this name already exists.
+			unless (ref $command_list{$new_cmd} eq '')  {
+				warn "Command name $new_cmd already exists as a default command.  Skipping...";
+				# If this was the primary command name, skip it entirely.
+				next UNIT_FILE if ( $new_cmd eq $main );
+				# Otherwise, just skip this alias.
+				next;
+				}
+			# Check already loaded units.
+			elsif (defined $command_list{$new_cmd})  {
+				warn "Command name $new_cmd from $unit already defined in unit $command_list{$new_cmd}.  Skipping...";
+				next UNIT_FILE if ( $new_cmd eq $main );
 				next;
 				}
 			
+			
+			
 			# Checks out
-			$command{$_} = \&{"cmd_$main"};
-			
-			
+			$units{$unit}{cmd}{$new_cmd}{code} = \&{"cmd_$main"};
+			$units{$unit}{cmd}{$new_cmd}{help} = \@help;
+			$units{$unit}{cmd}{$new_cmd}{help_plus} = \@help_plus;
+			# Track canonical command names.
+			$units{$unit}{cmd}{$new_cmd}{dup_of} = $main unless ( $new_cmd eq $main );
+			# Add to canonical command list.
+			$command_list{$new_cmd} = $unit;
 			
 			
 			}
-		# Add the main name to the command list.
-		push @command_list, $main;
 		
-		
-		# Load help text.
-		if ($header{Help})  {
-			debug 1,"Help found in $main";
-			my @text = split ( /\|/, $header{Help} );
-			foreach (@keys)  {
-				$help{"$_"} = \@text;
-				debug 3,"help item $_";
-				}
-			debug 2,int(@text);
-			}
 		
 		
 		
@@ -674,13 +684,11 @@ else  {
 # Set up other variables.
 $columns = $cfg{width};
 
+my @active_command_list;
+&update_command_list;
 
 
 
-
-
-
-@command_list = sort @command_list;
 
 # Load data file
 &load_data( $cfg{data_file}, $version );
@@ -794,8 +802,12 @@ while ( <$sock> )  {
 			my ( $c, $args ) = ($1, $2);
 			#say $c, $args;
 			$c =~ tr/A-Z/a-z/;
-			# Execute command if it is in the list.
-			&{$command{$c}}( $user, $tags, $args, \%cfg ) if ( exists($command{$c}) );
+			# Handle builtin commands.
+			&{$command_list{$c}}( $user, $tags, $args, \%cfg ) unless ref $command_list{$c} eq '';
+			
+			# Execute command if it is activated.
+			&{$units{$command_list{$c}}{cmd}{$c}{code}}( $user, $tags, $args, \%cfg )
+			    if ( $units{$command_list{$c}}{activated} );
 			}
 		
 		
@@ -853,21 +865,19 @@ sub help  {
 	elsif ($args eq 'license')  {
 		&license;
 		}
-	# Default help
-	elsif ( !($help{$args}) )  {
-		#!# Find a better way to list commands.
-		&chat("Available commands: !" . join (', !', @command_list)
-		    . ".  For more information on a specific command, type '!help [command]'.");
-		}
-	else  {
-		foreach ( @{$help{$args}} )  {
-			if (/^\+/)  {
-				# Either skip the +, or end.
-				next if &admin_test($tags);
-				return;
-				}
-			&chat($_);
+	elsif ( $args ne 'help'
+	    and $command_list{$args}
+	    and $units{$command_list{$args}}{activated}
+	    )  {
+		&chat($_) foreach @{$units{$command_list{$args}}{cmd}{$args}{help}};
+		if (&admin_test($tags))  {
+			&chat($_) foreach @{$units{$command_list{$args}}{cmd}{$args}{help_plus}};
 			}
+		}
+	# Default help
+	else  {
+		&chat("Available commands: !" . join (', !', @active_command_list)
+		    . ".  For more information on a specific command, type '!help [command]'.");
 		}
 	return;
 	}
@@ -932,6 +942,28 @@ sub admin_test  {
 sub timestamp  {
 	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
 	return sprintf ( "%d\.%02d.%02d-%02d:%02d:%02d", ($year + 1900, $mon + 1, $mday, $hour, $min, $sec) );
+	}
+
+
+sub update_command_list  {
+	# Clear the old list.
+	@active_command_list = ();
+	foreach my $cmd ( keys %command_list )  {
+		# Add any builtins.
+		unless (ref $command_list{$cmd} eq '')  {
+			push (@active_command_list, $cmd);
+			next;
+			}
+		
+		# Ignore inactive units
+		next unless $units{$command_list{$cmd}}{activated};
+		# Ignore aliases
+		next if defined $units{$command_list{$cmd}}{cmd}{$cmd}{dup_of};
+		
+		# Add it to the list.
+		push @active_command_list, $cmd;
+		}
+	@active_command_list = sort @active_command_list;
 	}
 
 

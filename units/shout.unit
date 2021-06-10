@@ -1,7 +1,11 @@
 
 Command: !shout !so !cat
 
-Help: !shout is a moderator-only command that sends premade messages, or shout-outs.|+|Advanced Usage: !shout add [keyword] [message text...] -- Adds a new shout-out.  [keyword] must be a single word with no punctuation other than underscore.|Advanced Usage: !shout [keyword] -- Displays a saved shout-out.|Advanced Usage: !shout del [keyword] -- Removes an existing shout-out message.|Advanced Usage: !shout list -- List all keywords currently saved.
+Help: !shout is a moderator-only command that sends premade messages, or shout-outs.
+Help+: Advanced Usage: !shout add [keyword] [message text...] -- Adds a new shout-out.  [keyword] must be a single word with no punctuation other than underscore.
+Help+: Advanced Usage: !shout [keyword] -- Displays a saved shout-out.
+Help+: Advanced Usage: !shout del [keyword] -- Removes an existing shout-out message.
+Help+: Advanced Usage: !shout list -- List all keywords currently saved.
 
 
 Code:
