@@ -557,14 +557,14 @@ sub load_data  {
 
 
 sub dump_data  {
-	my ($file, $dbVersion) = @_;
+	my ($cfg, $dbVersion) = @_;
 	
 	my @old;
 	my $read_fail;
 	# Load in up to the last X entries as backup
-	if (-e $file)  {
-		unless ( open (IN, '<', $file) )  {
-			warn "Unable to open $file for updating.\n";
+	if (-e $$cfg{data_file})  {
+		unless ( open (IN, '<', $$cfg{data_file}) )  {
+			warn "Unable to open $$cfg{data_file} for updating.\n";
 			$read_fail = 1;
 			}
 		
@@ -579,15 +579,15 @@ sub dump_data  {
 			push @old, $entry;
 			$entry = '';
 			# Stop at the configured value.
-			last if (@old >= $cfg{data_backups});
+			last if (@old >= $$cfg{data_backups});
 			}
 		
 		close IN;
 		}
 	
 	
-	unless ( open (OUT, '>', "${file}.tmp") )  {
-		warn "Unable to write to ${file}.tmp\n";
+	unless ( open (OUT, '>', "$$cfg{data_file}.tmp") )  {
+		warn "Unable to write to $$cfg{data_file}.tmp\n";
 		return;
 		}
 	# We don't need the current version,
@@ -623,31 +623,31 @@ sub dump_data  {
 	
 	
 	unless ( close(OUT) )  {
-		warn "Warning: couldn't complete save to ${file}.tmp!";
+		warn "Warning: couldn't complete save to $$cfg{data_file}.tmp!";
 		return;
 		}
 	
 	# Don't replace the old file if there was a read error.
 	if ($read_fail)  {
 		# Try renaming?
-		if ( rename $file, "${file}.old" )  {
+		if ( rename $$cfg{data_file}, "$$cfg{data_file}.old" )  {
 			debug 1, "Renamed old database, as it could not be read for prepending.";
 			}
 		else  {
 			# This is all bad news and a sign something went very wrong.
 			# so we'll not be too thorough in handling it.
-			warn "Database file not replaced.  Leaving as ${file}.tmp ...";
+			warn "Database file not replaced.  Leaving as $$cfg{data_file}.tmp ...";
 			return;
 			}
 		}
 	
 	
-	if ( rename "${file}.tmp", $file )  {
+	if ( rename "$$cfg{data_file}.tmp", $$cfg{data_file} )  {
 		debug 1, "Dumped data to file.";
 		$lastdump = time;
 		}
 	else  {
-		warn "Could not replace old data file ${file}";
+		warn "Could not replace old data file $$cfg{data_file}";
 		}
 	
 	}
@@ -848,7 +848,8 @@ sub units  {
 
 
 sub license  {
-	&chat("Talon_Bot is distributed under the terms of the GNU Affero General Public License.  " .
+	&chat("Talon_Bot version $version - This software is distributed under the terms of the " .
+	      "GNU Affero General Public License.  " .
 	      "This means that you, the user, have the right to download, modify, and run the " .
 	      "software yourself if you wish, under the same terms.  " .
 	      "Source code is available at $cfg{source_code_url}");
@@ -987,7 +988,7 @@ sub debug ($$)  {
 
 
 sub logoff  {
-	&dump_data( $cfg{data_file}, $dbVersion );
+	&dump_data( \%cfg, $dbVersion );
 	if ( $cfg{rawlog} )  {
 		print RAWLOG "\n--\n\n";
 		close RAWLOG
