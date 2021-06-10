@@ -82,6 +82,7 @@ my %cfg = (
 	user  => 'Invalid!',
 	auth  => 'Invalid!',
 	width => '25',
+	data_backups => 4,
 	bot_color => '8A2BE2',
 	user_color => 'BBBBBB',
 	tempfile_units => 'units.tmp',
@@ -201,6 +202,10 @@ auth = $cfg{auth}
 # Location of the source code for the bot.  If you make changes to the software,
 # you must host the code somewhere and change this link to point to it.
 #source_code_url = $cfg{source_code_url}
+
+# When saving the database, old data can be backed up inside the data file.
+# This specifies how many old versions should be retained.
+#data_backups = 4
 
 
 
@@ -556,7 +561,7 @@ sub dump_data  {
 	
 	my @old;
 	my $read_fail;
-	# Load in up to the last 4 entries as backup
+	# Load in up to the last X entries as backup
 	if (-e $file)  {
 		unless ( open (IN, '<', $file) )  {
 			warn "Unable to open $file for updating.\n";
@@ -573,8 +578,8 @@ sub dump_data  {
 			# Otherwise, push the whole entry to the list.
 			push @old, $entry;
 			$entry = '';
-			# Stop at 4.
-			last if (@old >= 4);
+			# Stop at the configured value.
+			last if (@old >= $cfg{data_backups});
 			}
 		
 		close IN;
