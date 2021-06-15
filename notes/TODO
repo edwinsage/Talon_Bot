@@ -8,6 +8,12 @@ Things to do still:
 ** There are probably also scoping issues with defining subroutines this way
 * Pick a method for putting multiple lines of text in a file, like help, rules, etc.
 * Make debug messages more informative and standardized
+* Make startup information useful
+* Make AGPL compliance easier - maybe a task for StreamTaffy integration
+* Add config item for unit location(s)
+* Tell commands what command name they were called under
+* Make a section in unit files for subroutine code
+* Pass commands a duplicate of %cfg, rather than the real one
 
 Possible ideas for later:
 

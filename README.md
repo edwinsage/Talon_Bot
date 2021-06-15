@@ -30,7 +30,7 @@ Talon_Bot is intended to be an extendable, hackable bot for Twitch chat.
    or download and extract one of the releases.
 
 1. Change to the Talon_Bot directory and run `./Talon_Bot` to create a default
-   config file, `.Talon_Bot.rc`.
+   config file, `Talon_Bot.conf`.
 
 1. Edit the created config file, particularly the lines for `user` and `auth`.
    (Not needed to run in test mode)

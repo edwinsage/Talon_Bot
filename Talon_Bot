@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Talon_Bot, a multipurpose bot for Twitch chat
-my $version = '0.3.1-alpha';
+my $version = '0.4.0-alpha';
 # Copyright 2020, 2021 Michael Pirkola
 
 # This program is free software: you can redistribute it and/or modify
@@ -27,7 +27,7 @@ use v5.20;
 
 use lib './';
 use IO::Socket::SSL;
-use Text::Wrap qw(wrap $columns);
+use Text::Wrap qw(wrap);
 use Getopt::Long;
 use HTTP::Tiny;
 use Twitch;
@@ -103,6 +103,7 @@ GetOptions( "test|t" => \$test,
 	    "help|h" => \&usage
 	    );
 
+eval('use Data::Dumper;') if $debug;
 
 
 # Let's locate our config file.
@@ -288,9 +289,16 @@ my %command_list = (
 
 
 
-# Initialize help.
+# Initialize global variables.
+$Text::Wrap::columns = $cfg{width};
 my %help;
+my %data;
+my $time;
+my $lastdump;
+my %units;
 
+# Load data file
+&load_data;
 
 
 
@@ -300,14 +308,13 @@ my %help;
 
 # Load units.
 my @unit_files = <units/*.unit>;
-my @output;
-
+my %available_units;
 debug 1,"Unit files: " . join (', ', @unit_files);
 
 
 # Build the list of units to load.
-my %units;
 
+# Add all existing unit files.
 foreach my $file (@unit_files)  {
 	my ($namespace) = $file =~ /(\w+)\.unit$/;
 	unless ( $namespace )  {
@@ -315,388 +322,34 @@ foreach my $file (@unit_files)  {
 		    ."alphanumeric characters and underscore.  Skipping...";
 		next;
 		}
-	$units{$namespace}{activated} = 1;
-	
+	$available_units{$namespace} = 1;
 	}
 
+# Check for whitelisting.
 if (defined $cfg{unit_whitelist})  {
 	my @white = split /,\s*/, $cfg{unit_whitelist};
 	my %whitelist;
 	# This line actually makes a hash.
 	@whitelist{@white} = (1) x @white;
-	foreach (keys %units)  {
+	foreach (keys %available_units)  {
 		next if $whitelist{$_};
 		debug 1,"Unit $_ is not on whitelist, skipping...";
-		delete $units{$_};
+		delete $available_units{$_};
 		}
 	}
 
-my @blacklist = split /,\s*/, $cfg{unit_blacklist};
-foreach (@blacklist)  {
-	next unless $units{$_};
+# Check for blacklisting.
+foreach (split /,\s*/, $cfg{unit_blacklist})  {
+	next unless $available_units{$_};
 	debug 1,"Unit $_ is blacklisted, skipping...";
-	delete $units{$_};
+	delete $available_units{$_};
 	}
 
-
-
-# Parse each one.
-foreach my $unit (keys %units)  {
-	my $file = 'units/' . $unit . '.unit';
-	unless (open ( UNIT, "<", "$file" ))  {
-		warn "Could not open unit file $file for reading.";
-		delete $units{$unit};
-		next;
-		}
-	
-	# Shlorp in the file by sections.
-	my @shlorp;
-	UNIT_FILE: while ( <UNIT> )  {
-		debug 2,"Line read from unit file";
-		# Skip checks if we're at the end.
-		debug 3, "Check1";
-		# Ignore blank lines.
-		next if ( /^\s*$/ and !eof );
-		chomp;
-		push ( @shlorp, $_ );
-		
-		debug 3,"Check2";
-		# Get one block at a time.
-		next unless ( /^\&\&/ or eof );
-		
-		debug 3,"Check3";
-		# Get rid of the ampersands.
-		pop @shlorp if /^\&\&/;
-		
-		debug 2,"Shlorped";
-		# Make sure we got something.
-		next unless @shlorp;
-		
-		debug 2,"@shlorp";
-		# Right now there are only command sections.
-		# More parsing will come later.
-		
-		# Parse commands
-		my %header;
-		my @help;
-		my @help_plus;
-		while (@shlorp)  {
-			# Peel off lines until we hit the code block.
-			$_ = shift @shlorp;
-			next if /^\s*$/;
-			
-			
-			if ( /^Code:/ )  {
-				debug 2,"Code block start";
-				last;
-				}
-			elsif ( /^Help: (.*)/ )  {
-				push @help, $1;
-				}
-			elsif ( /^Help\+: (.*)/ )  {
-				push @help_plus, $1;
-				}
-			elsif ( /(.*?): (.*)/ ) {
-				$header{$1} = $2;
-				debug 3,"Header $1 = $2";
-				}
-			else  {
-				#!# This needs a far better diagnostic message.
-				warn "Could not parse line:\n\t$_\n";
-				last;
-				}
-			
-			
-			}
-		
-		# There should at least be the commands in %header
-		# Check and make sure something isn't obviously wrong.
-		unless ( $header{Command} )  {
-			warn "Command line not found.";
-			@shlorp = ();
-			next;
-			}
-		
-		# Process the Command line
-		my @keys = split ( /\s+/, $header{Command} );
-		
-		my $main = $keys[0];
-		$main =~ s/!//;
-		
-		
-		
-		
-		
-		
-		
-		# Add the command to the command hash.
-		debug 1,"Adding command $main";
-		
-		foreach my $new_cmd ( @keys )  {
-			if ( !($new_cmd =~ /^!\w+$/) )  {
-				warn "Error parsing unit $unit: $new_cmd is not a proper command name.";
-				next;
-				}
-			$new_cmd =~ s/!//;
-			
-			# Check if a command with this name already exists.
-			unless (ref $command_list{$new_cmd} eq '')  {
-				warn "Command name $new_cmd already exists as a default command.  Skipping...";
-				# If this was the primary command name, skip it entirely.
-				next UNIT_FILE if ( $new_cmd eq $main );
-				# Otherwise, just skip this alias.
-				next;
-				}
-			# Check already loaded units.
-			elsif (defined $command_list{$new_cmd})  {
-				warn "Command name $new_cmd from $unit already defined in unit $command_list{$new_cmd}.  Skipping...";
-				next UNIT_FILE if ( $new_cmd eq $main );
-				next;
-				}
-			
-			
-			
-			# Checks out
-			$units{$unit}{cmd}{$new_cmd}{code} = \&{"cmd_$main"};
-			$units{$unit}{cmd}{$new_cmd}{help} = \@help;
-			$units{$unit}{cmd}{$new_cmd}{help_plus} = \@help_plus;
-			# Track canonical command names.
-			$units{$unit}{cmd}{$new_cmd}{dup_of} = $main unless ( $new_cmd eq $main );
-			# Add to canonical command list.
-			$command_list{$new_cmd} = $unit;
-			
-			
-			}
-		
-		
-		
-		
-		# Create the subroutine.
-		debug 1, 'Pushing subroutine to @output';
-		push @output, "sub cmd_$main  {\n\t"
-		    . 'my ( $user, $tags, $args, $cfg ) = @_;'
-		    . "\n";
-		
-		foreach (@shlorp)  {
-			# Translate to proper code
-			s/([\$\%]\{?)VARS/$1vars{$unit}/g;
-			s/([\$\%]\{?)DATA/$1data{$unit}/g;
-			
-			
-			push ( @output, "\t$_\n" );
-			}
-		push ( @output, "\t}\n\n" );
-		@shlorp = ();
-		}
-	close UNIT;
-	}
+# Load all units that passed muster.
+&load_unit($_) foreach (sort keys %available_units);
 
 
 
-
-# Write the result to a temporary file.
-open ( UNITS, ">", $cfg{tempfile_units} );
-print UNITS <<'END_OF_DATA_SUBS';
-use v5.20;
-
-my ( %vars, %data, $lastdump );
-
-
-sub load_data  {
-	my ($file, $version) = @_;
-	my ($major_ver, $minor_ver) = $version =~ /^(\d+)\.(\d+)/;
-	
-	# First check if the data file exists.
-	return unless ( -e $file );
-	
-	
-	# try to load the database.
-	open (IN, '<', $file)
-	    or die "Could not open data file $file for reading.";
-	
-	# Get database version requirement from the first line only.
-	my $version_line = <IN>;
-	chomp $version_line;
-	
-	my ($req_version) = $version_line =~ /^v(\d+\.\d+)/;
-	
-	die "Could not read version string from data file $file"
-	    unless $version_line =~ /^v(\d+)\.(\d+)/;
-	
-	die "Database file $file needs Talon_Bot version $req_version.0 or "
-	    ."better to read it.  Current version is only $version."
-	    if ($major_ver < $1 or $minor_ver < $2);
-	
-	while (my $line = <IN>)  {
-		chomp;
-		
-		# We don't care about backups here.
-		if ($line =~ /^\&\&/)  {
-			close(IN);
-			return;
-			}
-		
-		
-		# Old code first.
-		if ($req_version < 0.1)  {
-			# Put old database loading method here.
-			# 0.1 and 0.2 databases can be read by 0.3 rules.
-			}
-		else  {  # Current version: 0.3
-			# All lines should match this pattern.
-			# There should be no funny business here.
-			$line =~ /([\w_]+):([\w_]+): (.*)/
-			    or die "Error reading database file $file.  Line not parseable:\n$line";
-			
-			# Store the data.
-			$data{$1}{$2} = $3;
-			}
-		}
-	close(IN);
-	}
-
-
-sub dump_data  {
-	my ($cfg, $dbVersion) = @_;
-	
-	my @old;
-	my $read_fail;
-	# Load in up to the last X entries as backup
-	if (-e $$cfg{data_file})  {
-		unless ( open (IN, '<', $$cfg{data_file}) )  {
-			warn "Unable to open $$cfg{data_file} for updating.\n";
-			$read_fail = 1;
-			}
-		
-		my $entry;
-		while (<IN>)  {
-			unless (/^\&\&/)  {
-				# Add the line to the current entry.
-				$entry .= $_;
-				next unless eof;
-				}
-			# Otherwise, push the whole entry to the list.
-			push @old, $entry;
-			$entry = '';
-			# Stop at the configured value.
-			last if (@old >= $$cfg{data_backups});
-			}
-		
-		close IN;
-		}
-	
-	
-	unless ( open (OUT, '>', "$$cfg{data_file}.tmp") )  {
-		warn "Unable to write to $$cfg{data_file}.tmp\n";
-		return;
-		}
-	# We don't need the current version,
-	# we need the last time the database format was changed.
-	my $time = &timestamp;
-	print OUT "v$dbVersion - written $time\n";
-	
-	debug 2,"starting hash dump $data{boop}{boop}";
-	# %data is a hash of hashes.  Double-loop through it.
-	foreach my $unit (keys %data)  {
-		debug 2,"Looping for unit $unit";
-		foreach my $var ( keys %{$data{$unit}} )  {
-			debug 2,"Loop for variable $var in $unit";
-			# These keys need checking.  Alphanumeric and _ only.
-			unless ($var =~ /^\w+$/a)  {
-				warn "Could not store value $unit:$var - only alphanumeric characters and underscore are allowed for names.";
-				next;
-				}
-			# Since we're storing these in a line-based format,
-			# newlines are not allowed.
-			if ( $data{$unit}{$var} =~ /\n/ )  {
-				warn "Stripping newlines from $data{$unit}{$var}.  Stored data cannot contain newlines.";
-				$data{$unit}{$var} =~ s/\n//g;
-				}
-			# Write the data.
-			print OUT "$unit:$var: $data{$unit}{$var}\n";
-			
-			}
-		}
-	
-	# Append old data as backup.
-	print OUT "&&\n$_" foreach ( @old );
-	
-	
-	unless ( close(OUT) )  {
-		warn "Warning: couldn't complete save to $$cfg{data_file}.tmp!";
-		return;
-		}
-	
-	# Don't replace the old file if there was a read error.
-	if ($read_fail)  {
-		# Try renaming?
-		if ( rename $$cfg{data_file}, "$$cfg{data_file}.old" )  {
-			debug 1, "Renamed old database, as it could not be read for prepending.";
-			}
-		else  {
-			# This is all bad news and a sign something went very wrong.
-			# so we'll not be too thorough in handling it.
-			warn "Database file not replaced.  Leaving as $$cfg{data_file}.tmp ...";
-			return;
-			}
-		}
-	
-	
-	if ( rename "$$cfg{data_file}.tmp", $$cfg{data_file} )  {
-		debug 1, "Dumped data to file.";
-		$lastdump = time;
-		}
-	else  {
-		warn "Could not replace old data file $$cfg{data_file}";
-		}
-	
-	}
-
-END_OF_DATA_SUBS
-
-
-
-
-
-
-print UNITS foreach @output;
-# If everything works, this should be the return value.
-print UNITS "\n1;\n";
-close UNITS;
-
-
-### Run the units file
-
-my $return = do $cfg{tempfile_units};
-if ($return)  {
-	debug 1,"Loaded $cfg{tempfile_units} successfully.";
-	}
-else  {
-	die "Couldn't parse $cfg{tempfile_units}: $@" if $@;
-	die "Couldn't do $cfg{tempfile_units}: $!" unless defined $return;
-	die "Couldn't run $cfg{tempfile_units}";
-	}
-
-
-
-
-
-
-
-
-
-
-# Set up other variables.
-$columns = $cfg{width};
-
-my @active_command_list;
-&update_command_list;
-
-
-
-
-# Load data file
-&load_data( $cfg{data_file}, $version );
 
 
 
@@ -743,9 +396,6 @@ $SIG{TERM}  = \&signal_handler;
 # Move login output offscreen
 print "\n" x 25;
 
-
-# Make time global.
-my $time;
 
 
 
@@ -795,6 +445,11 @@ while ( <$sock> )  {
 		$$tags{$key} = $value;
 		}
 	
+	# Check all triggers for matches
+	
+	
+	
+	
 	if ( $cmd eq 'PRIVMSG' )  {
 		# Print message.
 		&term_out( $user, $tags, $msg );
@@ -808,11 +463,18 @@ while ( <$sock> )  {
 			#say $c, $args;
 			$c =~ tr/A-Z/a-z/;
 			# Handle builtin commands.
-			&{$command_list{$c}}( $user, $tags, $args, \%cfg ) unless ref $command_list{$c} eq '';
-			
-			# Execute command if it is activated.
-			&{$units{$command_list{$c}}{cmd}{$c}{code}}( $user, $tags, $args, \%cfg )
-			    if ( $units{$command_list{$c}}{activated} );
+			if ($command_list{$c})  {
+				&{$command_list{$c}}( $user, $tags, $args, \%cfg );
+				}
+			else  {
+				# Look for a matching command.
+				foreach my $unit (keys %units)  {
+					next unless ref $units{$unit}{cmd}{$c}{code};
+					# Execute command if it is found.
+					&{$units{$unit}{cmd}{$c}{code}}( $user, $tags, $args, \%cfg );
+					last;
+					}
+				}
 			}
 		
 		
@@ -867,25 +529,45 @@ sub help  {
 	
 	if ($args eq 'units')  {
 		&units;
+		return;
 		}
 	elsif ($args eq 'license')  {
 		&license;
+		return;
 		}
-	elsif ( $args ne 'help'
-	    and $command_list{$args}
-	    and $units{$command_list{$args}}{activated}
-	    )  {
-		&chat($_) foreach @{$units{$command_list{$args}}{cmd}{$args}{help}};
-		if (&admin_test($tags))  {
-			&chat($_) foreach @{$units{$command_list{$args}}{cmd}{$args}{help_plus}};
+	elsif ( $args ne 'help' )  {
+		# Check each unit for an existing command.
+		my $found;
+		foreach my $unit (keys %units)  {
+			debug 3,"Checking unit $unit";
+			if (defined $units{$unit}{cmd}{$args})  {
+				$found = $unit;
+				debug 2,"Command $args found in $unit.";
+				last;
+				}
+			}
+		if ($found)  {
+			&chat($_) foreach @{$units{$found}{cmd}{$args}{help}};
+			if (&admin_test($tags))  {
+				&chat($_) foreach @{$units{$found}{cmd}{$args}{help_plus}};
+				}
+			return;
 			}
 		}
 	# Default help
-	else  {
-		&chat("Available commands: !" . join (', !', @active_command_list)
-		    . ".  For more information on a specific command, type '!help [command]'.");
+	
+	# Create a list of main commands.
+	my @list = keys %command_list;
+	foreach my $unit (keys %units)  {
+		foreach (keys %{$units{$unit}{cmd}})  {
+			next if defined $units{$unit}{cmd}{$_}{dup_of};
+			push @list, $_;
+			}
+		
 		}
-	return;
+	debug 3, \%units;
+	&chat("Available commands: !" . join (', !', sort @list)
+	    . ".  For more information on a specific command, type '!help [command]'.");
 	}
 
 
@@ -894,6 +576,377 @@ sub help  {
 #######################
 ##  Other Functions  ##
 #######################
+
+sub load_unit  {
+	# Gets passed the name of a unit, without the .unit ending.
+	my $unit = $_[0];
+	
+	# This hash will contain the supplementary material generated by the unit file.
+	my %unit;
+	
+	my $file = 'units/' . $unit . '.unit';
+	unless (open ( UNIT, "<", "$file" ))  {
+		warn "Could not open unit file $file for reading: $!";
+		return;
+		}
+	
+	# Shlorp in the file by sections.
+	my @shlorp;
+	my @output;
+	UNIT_FILE: while ( <UNIT> )  {
+		debug 2,"Line read from unit file";
+		# Skip checks if we're at the end.
+		debug 3, "Check1";
+		# Ignore blank lines.
+		next if ( /^\s*$/ and !eof );
+		chomp;
+		push ( @shlorp, $_ );
+		
+		debug 3,"Check2";
+		# Get one block at a time.
+		next unless ( /^\&\&$/ or eof );
+		
+		debug 3,"Check3";
+		# Get rid of the ampersands.
+		pop @shlorp if /^\&\&$/;
+		
+		debug 2,"Shlorped";
+		# Make sure we got something.
+		next unless @shlorp;
+		
+		debug 2,"@shlorp";
+		# Right now there are only command sections.
+		# More parsing will come later.
+		
+		# Parse commands
+		my @commands;
+		my @triggers;
+		my @help;
+		my @help_plus;
+		
+		# Make sure there is actually a code block.
+		my $code_found;
+		
+		# Peel off lines until we hit the code block.
+		while (my $line = shift @shlorp)  {
+			next if $line =~ /^\s*$/;
+			
+			if ( $line =~ /^Code:/ )  {
+				debug 2,"Code block start";
+				$code_found = 1;
+				last;
+				}
+			elsif ( $line =~ /^Help: (.*)/ )  {
+				push @help, $1;
+				}
+			elsif ( $line =~ /^Help\+: (.*)/ )  {
+				push @help_plus, $1;
+				}
+			elsif ( my ($cmd) = $line =~ /^Command: (.*)/ )  {
+				$cmd =~ s/!//g;
+				my @keys = split ( /,?\s+/, $cmd );
+				push (@commands, @keys);
+				}
+			elsif ( $line =~ /^Trigger: (.*)/ )  {
+				push (@triggers, $1);
+				}
+			# No unspecified headers
+			#elsif ( /(.*?): (.*)/ ) {
+			#	$header{$1} = $2;
+			#	debug 3,"Header $1 = $2";
+			#	}
+			else  {
+				#!# This needs a far better diagnostic message.
+				warn "In unit file $file, could not parse line:\n\t$line\nSkipping $file...";
+				last;
+				}
+			
+			
+			}
+		
+		# Check for duplicate command names.
+		&resolve_existing_commands(\@commands);
+		
+		
+		# Basic checks.  Does this unit have the bare minimum?
+		unless ( $code_found and (@commands or @triggers) )  {
+			# Another bad error message.
+			warn "Block in $file is not loadable.";
+			@shlorp = ();
+			next;
+			}
+		
+		
+		# Process the code block.
+		# Create the subroutine.
+		debug 1, "Pushing subroutine to output";
+		push @output, "\$tempsub = sub  {\n\t"
+		    . 'my ( $user, $tags, $args, $cfg ) = @_;'
+		    . "\n";
+		
+		foreach (@shlorp)  {
+			# Translate simplified variables to proper ones
+			s/([\$\%]\{?)VARS/$1hash{vars}/g;
+			s/([\$\%]\{?)DATA/$1hash{data}/g;
+			
+			
+			push @output, "\t$_\n";
+			}
+		push @output, "\t};\n\n";
+		@shlorp = ();
+		
+		
+		# Add entries for commands and triggers.
+		my $repeat;  # Track duplicate commands
+		foreach (@commands)  {
+			push @output, '$hash{cmd}{' . $_ . '}{code} = $tempsub;' . "\n";
+			if ($repeat)  {
+				push @output, '$hash{cmd}{' . $_ . "}{dup_of} = '$repeat';\n";
+				}
+			else  {
+				$repeat = $_;
+				}
+			
+			# Add extras to %unit
+			$unit{$_}{help} = \@help;
+			$unit{$_}{help_plus} = \@help_plus;
+			}
+		foreach (@triggers)  {
+			# push (@$hash{trigger}, {test => '$msg =~ /a/', code => $tempsub});
+			push @output, 'push (@$hash{trigger}, {test => \'' . $_ . '\', code => $tempsub});' . "\n";
+			}
+		
+		push @output, '$tempsub = undef;' ."\n\n\n";
+		
+		}
+	close UNIT;
+	
+	# Initialize the temporary file.
+	unless (open ( TEMPUNIT, ">", $cfg{tempfile_units} ))  {
+		warn "Could not open $cfg{tempfile_units} for writing: $!";
+		&chat("Could not load unit $unit!");
+		return;
+		}
+	print TEMPUNIT "# Unit $unit\nuse v5.20;\n\n" . 'my %hash;' . "\n" . 'my $tempsub;' . "\n\n";
+	
+	print TEMPUNIT foreach @output;
+	# If everything works, this should be the return value.
+	print TEMPUNIT "\nreturn \\\%hash;\n";
+	close TEMPUNIT;
+	
+	# Run the unit temp file
+	my $hashref = do $cfg{tempfile_units};
+	if (ref $hashref)  {
+		debug 1,"Loaded $cfg{tempfile_units} successfully.";
+		}
+	else  {
+		warn "Couldn't parse $cfg{tempfile_units}: $@" if $@;
+		warn "Couldn't do $cfg{tempfile_units}: $!" unless defined $hashref;
+		warn "Couldn't run $cfg{tempfile_units}";
+		&chat("Could not load unit $unit!");
+		return;
+		}
+	
+	# Load the global %units hash with the hashref.
+	$units{$unit} = $hashref;
+	
+	# Add supplementary data.
+	foreach my $cmd (keys %unit)  {
+		$units{$unit}{cmd}{$cmd}{$_} = $unit{$cmd}{$_} foreach keys %{$unit{$cmd}};
+		}
+	
+	# Link existing data into place.
+	
+	$units{$unit}{data}{$_} = $data{$unit}{$_} foreach keys %{$data{$unit}};
+	
+	}
+
+
+sub load_data  {
+	my ($major_ver, $minor_ver) = $version =~ /^(\d+)\.(\d+)/;
+	
+	# First check if the data file exists.
+	return unless ( -e $cfg{data_file} );
+	
+	
+	# try to load the database.
+	open (IN, '<', $cfg{data_file})
+	    or die "Could not open data file $cfg{data_file} for reading.";
+	
+	# Get database version requirement from the first line only.
+	my $version_line = <IN>;
+	chomp $version_line;
+	
+	my ($req_version) = $version_line =~ /^v(\d+\.\d+)/;
+	
+	die "Could not read version string from data file $cfg{data_file}"
+	    unless $version_line =~ /^v(\d+)\.(\d+)/;
+	
+	die "Database file $cfg{data_file} needs Talon_Bot version $req_version.0 or "
+	    ."better to read it.  Current version is only $version."
+	    if ($major_ver < $1 or $minor_ver < $2);
+	
+	while (my $line = <IN>)  {
+		chomp;
+		
+		# We don't care about backups here.
+		if ($line =~ /^\&\&/)  {
+			close(IN);
+			return;
+			}
+		
+		
+		# Old code first.
+		if ($req_version < 0.1)  {
+			# Put old database loading method here.
+			# 0.1 and 0.2 databases can be read by 0.3 rules.
+			}
+		else  {  # Current version: 0.3
+			# All lines should match this pattern.
+			# There should be no funny business here.
+			$line =~ /([\w_]+):([\w_]+): (.*)/
+			    or die "Error reading database file $cfg{data_file}.  Line not parseable:\n$line";
+			
+			# Store the data.
+			$data{$1}{$2} = $3;
+			}
+		}
+	close(IN);
+	}
+
+
+sub dump_data  {
+	my @old;
+	my $read_fail;
+	# Load in up to the last X entries as backup
+	if (-e $cfg{data_file})  {
+		unless ( open (IN, '<', $cfg{data_file}) )  {
+			warn "Unable to open $cfg{data_file} for updating.\n";
+			$read_fail = 1;
+			}
+		
+		my $entry;
+		while (<IN>)  {
+			unless (/^\&\&/)  {
+				# Add the line to the current entry.
+				$entry .= $_;
+				next unless eof;
+				}
+			# Otherwise, push the whole entry to the list.
+			push @old, $entry;
+			$entry = '';
+			# Stop at the configured value.
+			last if (@old >= $cfg{data_backups});
+			}
+		
+		close IN;
+		}
+	
+	
+	unless ( open (OUT, '>', "$cfg{data_file}.tmp") )  {
+		warn "Unable to write to $cfg{data_file}.tmp\n";
+		return;
+		}
+	# We don't need the current version,
+	# we need the last time the database format was changed.
+	my $time = &timestamp;
+	print OUT "v$dbVersion - written $time\n";
+	
+	debug 2,"starting hash dump $data{boop}{boop}";
+	# %data is a hash of hashes.  Double-loop through it.
+	foreach my $unit (keys %data)  {
+		debug 2,"Looping for unit $unit";
+		foreach my $var ( keys %{$data{$unit}} )  {
+			debug 2,"Loop for variable $var in $unit";
+			# These keys need checking.  Alphanumeric and _ only.
+			unless ($var =~ /^\w+$/a)  {
+				warn "Could not store value $unit:$var - only alphanumeric characters and underscore are allowed for names.";
+				next;
+				}
+			# Since we're storing these in a line-based format,
+			# newlines are not allowed.
+			if ( $data{$unit}{$var} =~ /\n/ )  {
+				warn "Stripping newlines from $data{$unit}{$var}.  Stored data cannot contain newlines.";
+				$data{$unit}{$var} =~ s/\n//g;
+				}
+			# Write the data.
+			print OUT "$unit:$var: $data{$unit}{$var}\n";
+			
+			}
+		}
+	
+	# Append old data as backup.
+	print OUT "&&\n$_" foreach ( @old );
+	
+	
+	unless ( close(OUT) )  {
+		warn "Warning: couldn't complete save to $cfg{data_file}.tmp!";
+		return;
+		}
+	
+	# Don't replace the old file if there was a read error.
+	if ($read_fail)  {
+		# Try renaming?
+		if ( rename $cfg{data_file}, "$cfg{data_file}.old" )  {
+			debug 1, "Renamed old database, as it could not be read for prepending.";
+			}
+		else  {
+			# This is all bad news and a sign something went very wrong.
+			# so we'll not be too thorough in handling it.
+			warn "Database file not replaced.  Leaving as $cfg{data_file}.tmp ...";
+			return;
+			}
+		}
+	
+	
+	if ( rename "$cfg{data_file}.tmp", $cfg{data_file} )  {
+		debug 1, "Dumped data to file.";
+		$lastdump = time;
+		}
+	else  {
+		warn "Could not replace old data file $cfg{data_file}";
+		}
+	
+	}
+
+
+
+
+
+
+
+sub resolve_existing_commands  {
+	# Check for duplicate command names.
+	# Accepts an array reference which may be modified.
+	my $commands = $_[0];
+	
+	##++##  This could use some CS improvement, for sure.
+	CHECK: foreach my $u (keys %units)  {
+		foreach my $cmd (keys %{$units{$u}{cmd}})  {
+			
+			if ( $cmd eq $$commands[0] )  {
+				# If the duplicate is an alias, remove it.
+				if ( defined $units{$u}{cmd}{$cmd}{dup_of} )  {
+					delete $units{$u}{cmd}{$cmd};
+					
+					}
+				# If not, drop a warning and skip the command.
+				else {
+					warn "Command $cmd already exists in unit $u.  Skipping...";
+					@$commands = ();
+					}
+				# There should be no existing duplicates.
+				last CHECK;
+				}
+			
+			}
+		
+		}
+	}
+
+
+
+
 
 
 sub term_out  {
@@ -951,26 +1004,6 @@ sub timestamp  {
 	}
 
 
-sub update_command_list  {
-	# Clear the old list.
-	@active_command_list = ();
-	foreach my $cmd ( keys %command_list )  {
-		# Add any builtins.
-		unless (ref $command_list{$cmd} eq '')  {
-			push (@active_command_list, $cmd);
-			next;
-			}
-		
-		# Ignore inactive units
-		next unless $units{$command_list{$cmd}}{activated};
-		# Ignore aliases
-		next if defined $units{$command_list{$cmd}}{cmd}{$cmd}{dup_of};
-		
-		# Add it to the list.
-		push @active_command_list, $cmd;
-		}
-	@active_command_list = sort @active_command_list;
-	}
 
 
 sub signal_handler  {
@@ -983,7 +1016,10 @@ sub signal_handler  {
 
 
 sub debug ($$)  {
-	print "DEBUG$_[0]: $_[1]\n" if ($debug >= $_[0]);
+	return unless $debug >= $_[0];
+	my $msg = $_[1];
+	$msg = Dumper($_[1]) if ref $_[1];
+	print "DEBUG$_[0]: $msg\n";
 	}
 
 

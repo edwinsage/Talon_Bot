@@ -68,37 +68,43 @@ timers
 other triggers?
 
 
-All calls to commands are provided with four variables: $user, $tags, $args, and $cfg
+All calls to commands are provided with four variables:
+`$user`, `$tags`, `$args`, and `$cfg`
 
-$user is the Twitch username of the user who invoked the command
+`$user` is the Twitch username of the user who invoked the command
 
-$tags is a hash reference to all of the Twitch tags passed with the message. 
-These are accessible as, for example, $$tags{badges}. 
-The &admin_test subroutine takes $tags as its argument:
-if (&admin_test{$tags}) { do stuff }
+`$tags` is a hash reference to all of the Twitch tags passed with the message. 
+These are accessible as, for example, `$$tags{badges}`. 
+The `&admin_test` subroutine takes `$tags` as its argument:
+    if (&admin_test{$tags}) { do stuff }
 
-$args is everything the user typed after the command, minus the leading space. 
-It may be empty.
+`$args` is everything the user typed after the command, minus the leading
+space.  It may be empty.
 
-$cfg is a hash reference for the config read at startup.
+`$cfg` is a hash reference for the config read at startup.
 
 
 use whatever local variables you want
 They will not pass between calls
 
 for variables to persist between calls, use:
-%VARS{variable}
+    %VARS{variable}
 and do whatever you want in that namespace
 
-for data to persist between sessions (write to disk), use
-%DATA{variable}
-In this case, each [variable] should be a single word, and its value should be
-a string, rather than any sort of reference.
-Multiple such variables can exist.
+for data to persist between sessions (write to disk), use `%DATA{variable}`
+In this case, each [variable] should be a single word, and its value
+should be a string, rather than any sort of reference.  Multiple such
+variables can exist.
 
 
 
 
+Instead of (or in addition to) a command name, a block can be activated
+by a trigger.  A trigger is a test that operates on `$user`, `$tags`, or
+`$msg`.  For example, the line
+     Trigger: $msg =~ /^\d+$/
+would activate any time a chat message consisting of only digits was
+sent. 
 
 
 

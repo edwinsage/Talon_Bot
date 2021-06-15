@@ -1,0 +1,68 @@
+Talon_Bot uses a plugin system to load extra bits of functionality, referred to as "units". 
+Each unit is a single file,
+
+
+Units attempt to provide some minor amount of security to the running bot,
+but this is not strictly enforced.  
+
+Q: Should I let my users upload unit files to run on my bot?
+A: No.
+
+
+
+
+
+
+Structure of units dta:
+
+
+%units		The core
+    |
+    |   Each unit file creates a reference to a hash
+    |   which is stored under its name in %units
+    |
+    |
+    *——— "some_unit_name"->\%hashref
+    |     |
+    |     *——— cmd
+    |     |     |
+    |     |     *——— "some_command_name"
+    |     |     |     |
+    |     |     |     *——— code -> anonymous sub reference with =sub
+    |     |     |     |
+    |     |     |     *——— help -> \@ help text lines
+    |     |     |     |
+    |     |     |     *——— help_plus -> \@ admin help lines
+    |     |     |     |
+    |     |     |     *——— dup_of -> $ name of main command, if this is an alias
+    |     |     |
+    |     |     |
+    |     |     *——— "other_command"
+    |     |     |     |
+    |     |     |     same as above, maybe without dup_of
+    |     |     |
+    |     |     etc.
+    |     |
+    |     |
+    |     *——— trigger->\@   List of triggers to test
+    |     |     |
+    |     |     *——— 0->\%
+    |     |     |    |
+    |     |     |    *— test -> "$msg =~ / pattern /i"
+    |     |     |    |
+    |     |     |    *— code -> anonymous sub reference
+    |     |     |
+    |     |     *——— 1
+    |     |     |    same
+    |     |     etc.
+    |     |
+    |     |
+    |     |
+    |     |
+    |     |
+    |     
+    |
+    |
+    |
+
+
