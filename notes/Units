@@ -1,22 +1,25 @@
-Talon_Bot uses a plugin system to load extra bits of functionality, referred to as "units". 
-Each unit is a single file,
+Talon_Bot uses a plugin system to load extra bits of functionality,
+referred to as "units".  Each unit is a single file which can contain
+multiple blocks.  Each block contains a code block, preceeded
+by various headers that define when the code should be run.
 
 
-Units attempt to provide some minor amount of security to the running bot,
-but this is not strictly enforced.  
+
 
 Q: Should I let my users upload unit files to run on my bot?
-A: No.
+A: No.  Unit code is not sandboxed in any way, and has full access to
+   the system under the user that Talon_Bot is run as.  Never add unit files
+   from untrusted sources.
 
 
 
 
 
 
-Structure of units dta:
+Structure of units data:
 
 
-%units		The core
+%units        The core
     |
     |   Each unit file creates a reference to a hash
     |   which is stored under its name in %units
@@ -57,12 +60,18 @@ Structure of units dta:
     |     |     etc.
     |     |
     |     |
+    |     *——— vars    Namespace for the unit to do what it wants while loaded
+    |     |            Corresponds to %VARS in unit code
     |     |
     |     |
-    |     |
-    |     
+    |     *——— data    All key/value pairs in data will be saved and restored
+    |           |      Corresponds to %DATA in unit code
+    |           |
+    |           *——— key -> value
+    |           |
     |
     |
+    *——— "another_unit_name"->\%hashref
     |
 
-
+etc.

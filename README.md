@@ -5,7 +5,9 @@ Talon_Bot is intended to be an extendable, hackable bot for Twitch chat.
 
 ### Features:
 
-* Extensible user commands
+* Easily extensible via plugins, a.k.a. "units"
+
+* Responds to commands, or other chat-driven triggers
 
 * Creates timestamped logs of chats
 

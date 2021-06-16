@@ -1,24 +1,16 @@
 Things to do still:
 
 * Make a unit for creating simple commands
-* Actually make a units command, include github link and other info
-** Turn units on and off while running
-** Save on/off configuration
-* Fix namespace issues with unit-defined subroutines - need a non \w separator
-** There are probably also scoping issues with defining subroutines this way
-* Pick a method for putting multiple lines of text in a file, like help, rules, etc.
+* Save unit on/off configuration
 * Make debug messages more informative and standardized
 * Make startup information useful
 * Make AGPL compliance easier - maybe a task for StreamTaffy integration
 * Add config item for unit location(s)
 * Tell commands what command name they were called under
-* Make a section in unit files for subroutine code
 * Pass commands a duplicate of %cfg, rather than the real one
 
 Possible ideas for later:
 
-* Let commands specify regex for chat messages to be processed?
-** !vote could handle bare numbers; "1" rather than "!vote 1"
 * Have main loop do a non-blocking check for input, to allow for timers
 * Make an installer, once things get more stable
 * Go multi-user

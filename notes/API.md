@@ -4,17 +4,66 @@ This will get moved to docs/ once there's something worth releasing here.
 
 ## Current implementation:
 
+Use whatever local variables you want
+They will not pass between calls
+
+For variables to persist between calls, use:
+
+    %VARS{variable}
+
+and do whatever you want in that namespace
+
+For data to persist between sessions (write to disk), use `%DATA{variable}`
+In this case, each [variable] should be a single word, and its value
+should be a string, rather than any sort of reference.  Multiple such
+variables can exist.
+
+
+### Commands
+
+All calls to commands are provided with four variables:
+`$user`, `$tags`, `$args`, and `$cfg`
+
+`$user` is the Twitch username of the user who invoked the command
+
+`$tags` is a hash reference to all of the Twitch tags passed with the message. 
+These are accessible as, for example, `$$tags{badges}`. 
+The `&admin_test` subroutine takes `$tags` as its argument:
+
+    if (&admin_test{$tags}) { do stuff }
+
+`$args` is everything the user typed after the command, minus the leading
+space.  It may be empty.
+
+`$cfg` is a hash reference for the config read at startup.
+
+### Triggers
+
+Instead of (or in addition to) a command name, a block can be activated
+by a trigger.  A trigger is a test that operates on `$user`, `$tags`, or
+`$msg`, where $msg is the full text of a chat message.  For example, the line
+
+     Trigger: $msg =~ /^\d+$/
+
+would activate any time a chat message consisting of only digits was
+sent. 
+
+## Example unit:
+
     Command: !command_name !alternate_name !com_name
+    
+    Trigger: $msg =~ /^test/i
     
     Help: Display this help when users type "!help command_name"
     Help: Multiple lines can be shown by repeating the Help header.
     Help: This is line 3.
-    Help+: This will only be shown when a moderator asks for help on this command.
+    Help+: Help+ lines will only be shown when a moderator asks for help on this command.
     
     Code:
     # This is now a block of Perl code.
     # Everything after the 'Code:' line is treated as the body of the command
-    # subroutine, until the end of the block or end of file.
+    # subroutine, until the end of the block or end of file.  It is executed
+    # whenever the command is typed, or whenever the trigger is triggered.
     
     # Send messages to chat with &chat():
     &chat("Hello world!");
@@ -68,43 +117,6 @@ timers
 other triggers?
 
 
-All calls to commands are provided with four variables:
-`$user`, `$tags`, `$args`, and `$cfg`
-
-`$user` is the Twitch username of the user who invoked the command
-
-`$tags` is a hash reference to all of the Twitch tags passed with the message. 
-These are accessible as, for example, `$$tags{badges}`. 
-The `&admin_test` subroutine takes `$tags` as its argument:
-    if (&admin_test{$tags}) { do stuff }
-
-`$args` is everything the user typed after the command, minus the leading
-space.  It may be empty.
-
-`$cfg` is a hash reference for the config read at startup.
-
-
-use whatever local variables you want
-They will not pass between calls
-
-for variables to persist between calls, use:
-    %VARS{variable}
-and do whatever you want in that namespace
-
-for data to persist between sessions (write to disk), use `%DATA{variable}`
-In this case, each [variable] should be a single word, and its value
-should be a string, rather than any sort of reference.  Multiple such
-variables can exist.
-
-
-
-
-Instead of (or in addition to) a command name, a block can be activated
-by a trigger.  A trigger is a test that operates on `$user`, `$tags`, or
-`$msg`.  For example, the line
-     Trigger: $msg =~ /^\d+$/
-would activate any time a chat message consisting of only digits was
-sent. 
 
 
 

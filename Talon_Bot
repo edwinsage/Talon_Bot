@@ -280,8 +280,8 @@ if ( $cfg{chatlog} )  {
 
 
 
-# Create the command list, starting with builtins.
-my %command_list = (
+# Make a list of builtin commands.
+my %builtin_commands = (
 	units => \&units,
 	license => \&license,
 	help => \&help
@@ -445,7 +445,6 @@ while ( <$sock> )  {
 		$$tags{$key} = $value;
 		}
 	
-	# Check all triggers for matches
 	
 	
 	
@@ -463,8 +462,8 @@ while ( <$sock> )  {
 			#say $c, $args;
 			$c =~ tr/A-Z/a-z/;
 			# Handle builtin commands.
-			if ($command_list{$c})  {
-				&{$command_list{$c}}( $user, $tags, $args, \%cfg );
+			if ($builtin_commands{$c})  {
+				&{$builtin_commands{$c}}( $user, $tags, $args, \%cfg );
 				}
 			else  {
 				# Look for a matching command.
@@ -478,6 +477,18 @@ while ( <$sock> )  {
 				}
 			}
 		
+		
+		
+		}
+	
+	# Check all triggers for matches
+	foreach my $unit (keys %units)  {
+		foreach my $trigger (@{$units{$unit}{trigger}})  {
+			debug 2,"Executing trigger $$trigger{test}";
+			my $result = eval $$trigger{test};
+			debug 1,"Trigger $$trigger{test} failed to run: $@" unless defined $result;
+			&{$$trigger{code}}( $user, $tags, $msg, \%cfg ) if $result;
+			}
 		
 		
 		}
@@ -616,7 +627,7 @@ sub help  {
 	# Default help
 	
 	# Create a list of main commands.
-	my @list = keys %command_list;
+	my @list = keys %builtin_commands;
 	foreach my $unit (keys %units)  {
 		foreach (keys %{$units{$unit}{cmd}})  {
 			next if defined $units{$unit}{cmd}{$_}{dup_of};
@@ -777,8 +788,8 @@ sub load_unit  {
 			$unit{$_}{help_plus} = \@help_plus;
 			}
 		foreach (@triggers)  {
-			# push (@$hash{trigger}, {test => '$msg =~ /a/', code => $tempsub});
-			push @output, 'push (@$hash{trigger}, {test => \'' . $_ . '\', code => $tempsub});' . "\n";
+			# push (@{$hash{trigger}}, {test => '$msg =~ /a/', code => $tempsub});
+			push @output, 'push (@{$hash{trigger}}, {test => \'' . $_ . '\', code => $tempsub});' . "\n";
 			}
 		
 		push @output, '$tempsub = undef;' ."\n\n\n";
