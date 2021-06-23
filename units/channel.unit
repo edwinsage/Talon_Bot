@@ -23,25 +23,9 @@ unless ($$cfg{user_access_token})  {
 	return;
 	}
 
-# Create the connection handle.
-my $handle = HTTP::Tiny->new( verify_SSL => 'true' );
-
-# Create the auth "object"
-my $auth = {
-	client_id => $$cfg{client_id},
-	client_secret => $$cfg{client_secret},
-	user_access_token => $$cfg{user_access_token},
-	user_refresh_token => $$cfg{user_refresh_token},
-	
-	handle => $handle
-	};
-$$auth{app_access_token} = $DATA{app_access_token} if $DATA{app_access_token};
-$$auth{user_access_token} = $DATA{user_access_token} if $DATA{user_access_token};
-$$auth{user_refresh_token} = $DATA{user_refresh_token} if $DATA{user_refresh_token};
-
 # Get channel ID if needed.
 my $user = substr $$cfg{channel}, 1;
-$DATA{channel_id} = Twitch::get_user_id( $auth, $user ) unless $DATA{channel_id};
+$DATA{channel_id} = Twitch::get_user_id( $cfg, $user ) unless $DATA{channel_id};
 debug 1,"Channel ID: $DATA{channel_id}";
 
 
@@ -57,8 +41,8 @@ if ($args[0] eq 'save')  {BLOCK:{
 	
 	# Get the information:
 	#   game_id, title, tags
-	my @tags = Twitch::get_tags($auth, $DATA{channel_id});
-	my $info = Twitch::get_channel_info($auth, $DATA{channel_id});
+	my @tags = Twitch::get_tags($cfg, $DATA{channel_id});
+	my $info = Twitch::get_channel_info($cfg, $DATA{channel_id});
 	
 	# Build the string that will get saved in DATA.
 	my $string = "tags:";
@@ -99,18 +83,10 @@ elsif ($args[0] eq 'load')  {BLOCK:{
 	
 	my @tags = split /,/, $tags;
 	
-	Twitch::put_channel_info($auth, $DATA{channel_id}, $hash);
+	Twitch::put_channel_info($cfg, $DATA{channel_id}, $hash);
 	
-	Twitch::put_tags($auth, $DATA{channel_id}, @tags);
+	Twitch::put_tags($cfg, $DATA{channel_id}, @tags);
 	
 	
 	
 	}}
-
-# Store any tokens created during the call.
-$DATA{app_access_token} = $$auth{app_access_token} if $$auth{app_access_token};
-$DATA{user_access_token} = $$auth{user_access_token} if $$auth{user_access_token};
-$DATA{user_refresh_token} = $$auth{user_refresh_token} if $$auth{user_refresh_token};
-
-
-

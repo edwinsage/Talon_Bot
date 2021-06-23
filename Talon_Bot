@@ -30,6 +30,8 @@ use IO::Socket::SSL;
 use Text::Wrap qw(wrap);
 use Getopt::Long;
 use HTTP::Tiny;
+use Digest::SHA qw(hmac_sha256_hex);
+use JSON 'encode_json';
 use Twitch;
 
 # Predeclare debug prototype.
@@ -82,7 +84,7 @@ my %cfg = (
 	user  => 'Invalid!',
 	auth  => 'Invalid!',
 	width => '25',
-	data_backups => 4,
+	data_backups => '4',
 	bot_color => '8A2BE2',
 	user_color => 'BBBBBB',
 	tempfile_units => 'units.tmp',
@@ -210,6 +212,20 @@ auth = $cfg{auth}
 
 
 
+#########################
+##  StreamTaffy Setup  ##
+#########################
+# StreamTaffy is overlay software for streams.
+# https://github.com/edwinsage/StreamTaffy
+
+# The URL your instance of StreamTaffy is listening on for Twitch events.
+#streamtaffy_listener_url = 
+
+# The secret chosen to verify subscription events.
+#streamtaffy_secret = 
+
+
+
 ###################
 ##  Unit Config  ##
 ###################
@@ -302,11 +318,25 @@ my %units;
 
 
 
+
+# Create the connection handle.
+$cfg{handle} = HTTP::Tiny->new( verify_SSL => 'true' );
+
+
+#foreach ('app_access_token', 'user_access_token', 'user_refresh_token')  {
+foreach (keys %{$data{core}})  {
+	$cfg{$_} = $data{core}{$_} if $data{core}{$_};
+	}
+
+
+
+
+
 #############
 ##  Units  ##
 #############
 
-# Load units.
+# Find unit files.
 my @unit_files = <units/*.unit>;
 my %available_units;
 debug 1,"Unit files: " . join (', ', @unit_files);
@@ -323,6 +353,12 @@ foreach my $file (@unit_files)  {
 		next;
 		}
 	$available_units{$namespace} = 1;
+	}
+
+# 'core' is not a valid unit name.
+if ($available_units{core})  {
+	warn "Unable to load unit: 'core' is a reserved name.";
+	delete $available_units{core};
 	}
 
 # Check for whitelisting.
@@ -484,7 +520,7 @@ while ( <$sock> )  {
 	# Check all triggers for matches
 	foreach my $unit (keys %units)  {
 		foreach my $trigger (@{$units{$unit}{trigger}})  {
-			debug 2,"Executing trigger $$trigger{test}";
+			debug 2,"Testing trigger $$trigger{test}";
 			my $result = eval $$trigger{test};
 			debug 1,"Trigger $$trigger{test} failed to run: $@" unless defined $result;
 			&{$$trigger{code}}( $user, $tags, $msg, \%cfg ) if $result;
@@ -898,7 +934,7 @@ sub load_data  {
 		else  {  # Current version: 0.3
 			# All lines should match this pattern.
 			# There should be no funny business here.
-			$line =~ /([\w_]+):([\w_]+): (.*)/
+			$line =~ /^([\w_]+):([\w_]+): (.*)$/
 			    or die "Error reading database file $cfg{data_file}.  Line not parseable:\n$line";
 			
 			# Store the data.
@@ -913,6 +949,12 @@ sub load_data  {
 sub dump_data  {
 	my @old;
 	my $read_fail;
+	
+	# Update tokens from $cfg.
+	foreach ('app_access_token', 'user_access_token', 'user_refresh_token')  {
+		$data{core}{$_} = $cfg{$_} if $cfg{$_};
+		}
+	
 	# Load in up to the last X entries as backup
 	if (-e $cfg{data_file})  {
 		unless ( open (IN, '<', $cfg{data_file}) )  {
@@ -1060,6 +1102,70 @@ sub term_out  {
 	# Print message.
 	#print '\033[38;2;' . "$cr;$cg;${cb}m$user" . '\033[0m: ' . "$msg\n";
 	print "$status\e[38;2;$cr;$cg;${cb}m$user\e[0m:\n$msg\n";
+	}
+
+
+
+sub send_overlay_event  {
+	my ($type, $event_hash) = @_;
+	
+	# Make sure we're equipped to send events.
+	unless ( $cfg{streamtaffy_listener_url} )  {
+		warn "Overlay events not possible without streamtaffy_listener_url set!";
+		return;
+		}
+	unless ( $cfg{streamtaffy_secret} )  {
+		warn "Overlay events not possible without streamtaffy_secret set!";
+		return;
+		}
+	
+	# Create an ID
+	my $id = "Talon_Bot" . sprintf ( "%08d", int(rand(100000000)) );
+	
+	# Create timestamp
+	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime();
+	my $time = sprintf ( "%d-%02d-%02dT%02d:%02d:%02d.00000000Z", ($year + 1900, $mon + 1, $mday, $hour, $min, $sec) );
+	# Create payload
+	my %json_data = (
+		subscription => {
+			id => $id,
+			status => "enabled",
+			type => "custom.$type",
+			transport => {
+				method => "webhook",
+				callback => $cfg{streamtaffy_listener_url}
+				}
+			},
+		event => $event_hash
+		);
+	
+	my $content = encode_json \%json_data;
+	my $digest = hmac_sha256_hex($id . $time . $content, $cfg{streamtaffy_secret});
+	debug 1,$content;
+	
+	my $headers;
+	$$headers{'Content-Length'} = length $content; # NOT UNICODE SAFE
+	$$headers{'Content-Type'} = 'application/json';
+	$$headers{'Twitch-Eventsub-Message-Id'} = $id;
+	$$headers{'Twitch-Eventsub-Message-Signature'} = "sha256=$digest";
+	$$headers{'Twitch-Eventsub-Message-Timestamp'} = $time;
+	$$headers{'Twitch-Eventsub-Subscription-Type'} = "custom.$type";
+	$$headers{'Twitch-Eventsub-Message-Type'} = 'notification';
+	
+	my $res = HTTP::Tiny->new->request(
+	    'POST',
+	    $cfg{streamtaffy_listener_url},
+	    {headers => $headers,
+	     content => $content}
+	    );
+	
+	
+	
+	unless ($$res{success})  {
+		warn "Overlay event not accepted!";
+		debug 1,$res;
+		}
+	
 	}
 
 
