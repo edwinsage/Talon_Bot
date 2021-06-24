@@ -759,6 +759,7 @@ sub load_unit  {
 				my @keys = split ( /,?\s+/, $cmd );
 				foreach (@keys)  {
 					s/^!//;
+					tr/A-Z/a-z/;
 					# For now, no special characters.
 					unless ( /^\w+$/ )  {
 						warn "Invalid command name '$_'.  Skipping...";
