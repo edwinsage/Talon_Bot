@@ -755,9 +755,17 @@ sub load_unit  {
 				push @help_plus, $1;
 				}
 			elsif ( my ($cmd) = $line =~ /^Command: (.*)/ )  {
-				$cmd =~ s/!//g;
+				
 				my @keys = split ( /,?\s+/, $cmd );
-				push (@commands, @keys);
+				foreach (@keys)  {
+					s/^!//;
+					# For now, no special characters.
+					unless ( /^\w+$/ )  {
+						warn "Invalid command name '$_'.  Skipping...";
+						next;
+						}
+					push @commands, $_;
+					}
 				}
 			elsif ( $line =~ /^Trigger: (.*)/ )  {
 				push (@triggers, $1);
