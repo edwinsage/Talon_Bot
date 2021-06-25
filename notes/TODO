@@ -8,6 +8,8 @@ Things to do still:
 * Add config item for unit location(s)
 * Tell commands what command name they were called under
 * Pass commands a duplicate of %cfg, rather than the real one
+* Make Twitch.pm into a proper module with Exporter
+* * Use this to get rid of passing $cfg around by exporting an $auth hash
 
 Possible ideas for later:
 
