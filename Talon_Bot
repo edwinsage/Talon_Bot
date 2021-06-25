@@ -507,7 +507,7 @@ while ( <$sock> )  {
 					next unless (defined $units{$unit}{cmd}{$c}
 					    and ref $units{$unit}{cmd}{$c}{code});
 					# Execute command if it is found.
-					&{$units{$unit}{cmd}{$c}{code}}( $user, $tags, $args, \%cfg );
+					&{$units{$unit}{cmd}{$c}{code}}( $user, $tags, $msg, \%cfg, $args );
 					last;
 					}
 				}
@@ -802,7 +802,7 @@ sub load_unit  {
 		# Create the subroutine.
 		debug 1, "Pushing subroutine to output";
 		push @output, "\$tempsub = sub  {\n\t"
-		    . 'my ( $user, $tags, $args, $cfg ) = @_;'
+		    . 'my ( $user, $tags, $msg, $cfg, $args ) = @_;'
 		    . "\n";
 		
 		foreach (@shlorp)  {
