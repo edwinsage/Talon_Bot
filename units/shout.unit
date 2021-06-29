@@ -27,7 +27,7 @@ if ( $args eq '' or $args eq 'list' )  {
 		    . '.';
 		}
 	}
-elsif ( $args =~ /^rem\s+(\w+)$/ )  {
+elsif ( $args =~ /^rem\s+(\w+)$/ or $args =~ /^del\s+(\w+)$/ )  {
 	$message = 'No such keyword found to delete!';
 	if ( $DATA{$1} )  {
 		$message = "Removing $1.";
