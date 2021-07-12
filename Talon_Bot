@@ -959,6 +959,9 @@ sub dump_data  {
 	my @old;
 	my $read_fail;
 	
+	# Get data from loaded units.
+	$data{$_} = $units{$_}{data} foreach keys %units;
+	
 	# Update tokens from $cfg.
 	foreach ('app_access_token', 'user_access_token', 'user_refresh_token')  {
 		$data{core}{$_} = $cfg{$_} if $cfg{$_};
