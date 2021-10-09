@@ -26,6 +26,7 @@ my $dbVersion = '0.3';
 use v5.20;
 
 use lib './';
+use Data::Dumper;
 use IO::Socket::SSL;
 use Text::Wrap qw(wrap);
 use Getopt::Long;
@@ -105,7 +106,6 @@ GetOptions( "test|t" => \$test,
 	    "help|h" => \&usage
 	    );
 
-eval('use Data::Dumper;') if $debug;
 
 
 # Let's locate our config file.
@@ -299,6 +299,7 @@ if ( $cfg{chatlog} )  {
 # Make a list of builtin commands.
 my %builtin_commands = (
 	units => \&units,
+	commands => \&commands,
 	license => \&license,
 	help => \&help
 	);
@@ -615,6 +616,25 @@ sub units  {
 
 
 
+sub commands  {
+	my ($user, $tags, $args) = @_;
+	
+	
+	if ($args eq 'help' or $args eq '')  {
+		&chat("Available commands: !"
+		    . join (', !', sort @{&get_command_list}) );
+		return;
+		}
+	
+	
+	# Admin only
+	return unless &admin_test($tags);
+	
+	
+	}
+
+
+
 sub license  {
 	&chat("Talon_Bot version $version - This software is distributed under the terms of the " .
 	      "GNU Affero General Public License.  " .
@@ -635,6 +655,10 @@ sub help  {
 	
 	if ($args eq 'units')  {
 		&units($user, $tags, 'help');
+		return;
+		}
+	if ($args eq 'commands')  {
+		&commands($user, $tags, 'help');
 		return;
 		}
 	elsif ($args eq 'license')  {
@@ -662,17 +686,10 @@ sub help  {
 		}
 	# Default help
 	
-	# Create a list of main commands.
-	my @list = keys %builtin_commands;
-	foreach my $unit (keys %units)  {
-		foreach (keys %{$units{$unit}{cmd}})  {
-			next if defined $units{$unit}{cmd}{$_}{dup_of};
-			push @list, $_;
-			}
-		
-		}
+	my $list = &get_command_list;
+	
 	debug 3, \%units;
-	&chat("Available commands: !" . join (', !', sort @list)
+	&chat("Available commands: !" . join (', !', sort @$list)
 	    . ".  For more information on a specific command, type '!help [command]'.");
 	}
 
@@ -731,7 +748,8 @@ sub load_unit  {
 		# More parsing will come later.
 		
 		# Parse commands
-		my @commands;
+		my @commands;  # Holds the primary command name in
+		               # the first slot, and aliases after.
 		my @triggers;
 		my @help;
 		my @help_plus;
@@ -1087,6 +1105,20 @@ sub resolve_existing_commands  {
 			}
 		
 		}
+	}
+
+
+
+sub get_command_list  {
+	# Create a list of main commands.
+	my @list = keys %builtin_commands;
+	foreach my $unit (keys %units)  {
+		foreach (keys %{$units{$unit}{cmd}})  {
+			next if defined $units{$unit}{cmd}{$_}{dup_of};
+			push @list, $_;
+			}
+		}
+	return \@list;
 	}
 
 
