@@ -40,20 +40,20 @@ sub debug ($$);
 
 # This is how to run this program!
 sub usage  {
-	print <<"END_HELP";
-Usage:
- $0 [options]
-
-$0 is a multipurpose bot for Twitch chat.
-
-Options:
-    -h   --help         Print this help text
-    -c   --config       Specify a config file other than .Talon_Bot.rc
-    -t   --test         Don't connect to Twitch chat, just run interactively
-    -d   --debug        Enable extra debug output
-
-END_HELP
-#'# <- Fix syntax highlighting.
+	(my $text = <<"	#   END_HELP") =~ s/^\t#   //gm;
+	#   Usage:
+	#    $0 [options]
+	#   
+	#   $0 is a multipurpose bot for Twitch chat.
+	#   
+	#   Options:
+	#       -h   --help         Print this help text
+	#       -c   --config       Specify a config file other than .Talon_Bot.rc
+	#       -t   --test         Don't connect to Twitch chat, just run interactively
+	#       -d   --debug        Enable extra debug output
+	#   
+	#   END_HELP
+	print $text;
 	exit;
 	}
 
@@ -366,7 +366,7 @@ if ($available_units{core})  {
 if (defined $cfg{unit_whitelist})  {
 	my @white = split /,\s*/, $cfg{unit_whitelist};
 	my %whitelist;
-	# This line actually makes a hash.
+	# This line actually makes a hash:
 	@whitelist{@white} = (1) x @white;
 	foreach (keys %available_units)  {
 		next if $whitelist{$_};
@@ -630,6 +630,11 @@ sub commands  {
 	# Admin only
 	return unless &admin_test($tags);
 	
+	if ($args eq 'add')  {
+		
+		
+		
+		}
 	
 	}
 
