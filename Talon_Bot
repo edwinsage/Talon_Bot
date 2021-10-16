@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Talon_Bot, a multipurpose bot for Twitch chat
-my $version = '0.4.1-alpha';
+my $version = '0.5.0-alpha';
 # Copyright 2020, 2021 Michael Pirkola
 
 # This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@ my $version = '0.4.1-alpha';
 # This number should be changed to the current major.minor version number any
 # time any change is made to the database format that is not fully forwards and
 # backwards compatible with the previous parsing code.
-my $dbVersion = '0.3';
+my $dbVersion = '0.5';
 
 
 
@@ -34,6 +34,8 @@ use HTTP::Tiny;
 use Digest::SHA qw(hmac_sha256_hex);
 use JSON 'encode_json';
 use Twitch;
+
+$Data::Dumper::Terse = 1;
 
 # Predeclare debug prototype.
 sub debug ($$);
@@ -313,6 +315,7 @@ my %data;
 my $time;
 my $lastdump;
 my %units;
+my %user_commands;
 
 # Load data file
 &load_data;
@@ -503,14 +506,26 @@ while ( <$sock> )  {
 				&{$builtin_commands{$c}}( $user, $tags, $args, \%cfg );
 				}
 			else  {
-				# Look for a matching command.
+				my $found;
+				# Look for a matching unit command.
 				foreach my $unit (keys %units)  {
 					next unless (defined $units{$unit}{cmd}{$c}
 					    and ref $units{$unit}{cmd}{$c}{code});
 					# Execute command if it is found.
 					&{$units{$unit}{cmd}{$c}{code}}( $user, $tags, $msg, \%cfg, $args );
+					$found = 1;
 					last;
 					}
+				# If no unit command was found,
+				# check for user commands.
+				if ( !$found and $data{core}{cmd}{$c} )  {
+					# For now there are no options,
+					# so just display the text.
+					&chat($data{core}{cmd}{$c}{text});
+					
+					}
+				
+				
 				}
 			}
 		
@@ -630,7 +645,7 @@ sub commands  {
 	# Admin only
 	return unless &admin_test($tags);
 	
-	if ($args eq 'add')  {
+	if ($args =~ /^add (.*)/i)  {
 		
 		
 		
@@ -948,30 +963,41 @@ sub load_data  {
 	    ."better to read it.  Current version is only $version."
 	    if ($major_ver < $1 or $minor_ver < $2);
 	
+	# Read in lines until we get to the end of the block.
+	my @database;
 	while (my $line = <IN>)  {
-		chomp;
-		
 		# We don't care about backups here.
-		if ($line =~ /^\&\&/)  {
-			close(IN);
-			return;
-			}
+		last if $line =~ /^\&\&/;
 		
-		
-		# Old code first.
-		if ($req_version < 0.1)  {
-			# Put old database loading method here.
-			# 0.1 and 0.2 databases can be read by 0.3 rules.
-			}
-		else  {  # Current version: 0.3
+		push @database, $line;
+		}
+	close(IN);
+	
+	# Clear the old database, if it existed.
+	%data = ();
+	
+	# Old code first.
+	if ($req_version < 0.1)  {
+		# Put old database loading method here.
+		# 0.1 and 0.2 databases can be read by 0.3 rules.
+		}
+	elsif ($req_version < 0.5)  {  # Previous version: 0.3
+		foreach my $line (@database)  {
+			chomp $line;
 			# All lines should match this pattern.
 			# There should be no funny business here.
-			$line =~ /^([\w_]+):([\w_]+): (.*)$/
+			my ($unit, $key, $value) = $line =~ /^([\w_]+):([\w_]+): (.*)$/
 			    or die "Error reading database file $cfg{data_file}.  Line not parseable:\n$line";
 			
 			# Store the data.
-			$data{$1}{$2} = $3;
+			$data{$unit}{$key} = $value;
+			
 			}
+		}
+	else  {  # Current version: 0.5
+		# Now using Data::Dumper to handle this cleanly.
+		
+		%data = %{eval join '', @database};
 		}
 	close(IN);
 	}
@@ -1024,28 +1050,8 @@ sub dump_data  {
 	my $time = &timestamp;
 	print OUT "v$dbVersion - written $time\n";
 	
-	debug 2,"starting hash dump $data{boop}{boop}";
-	# %data is a hash of hashes.  Double-loop through it.
-	foreach my $unit (keys %data)  {
-		debug 2,"Looping for unit $unit";
-		foreach my $var ( keys %{$data{$unit}} )  {
-			debug 2,"Loop for variable $var in $unit";
-			# These keys need checking.  Alphanumeric and _ only.
-			unless ($var =~ /^\w+$/a)  {
-				warn "Could not store value $unit:$var - only alphanumeric characters and underscore are allowed for names.";
-				next;
-				}
-			# Since we're storing these in a line-based format,
-			# newlines are not allowed.
-			if ( $data{$unit}{$var} =~ /\n/ )  {
-				warn "Stripping newlines from $data{$unit}{$var}.  Stored data cannot contain newlines.";
-				$data{$unit}{$var} =~ s/\n//g;
-				}
-			# Write the data.
-			print OUT "$unit:$var: $data{$unit}{$var}\n";
-			
-			}
-		}
+	debug 2,'Writing %data to file';
+	print OUT Dumper \%data;
 	
 	# Append old data as backup.
 	print OUT "&&\n$_" foreach ( @old );
