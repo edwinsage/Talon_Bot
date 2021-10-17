@@ -645,9 +645,24 @@ sub commands  {
 	# Admin only
 	return unless &admin_test($tags);
 	
-	if ($args =~ /^add (.*)/i)  {
+	if ( my ($attr, $command, $text) = $args =~ /^add\s+([\w=,]*)\s*!(\w+)\s+(.*)/i)  {
+		# Create a hash to hold the command until it's finished.
+		my %cmd = ( text => $text );
 		
+		# Parse attributes.
+		foreach (split /,/, $attr)  {
+			unless (/(\w+)=(\w+)/)  {
+				&chat("Argument $_ not parseable.");
+				return;
+				}
+			$cmd{attr}{$1} = $2;
+			
+			}
 		
+		# If the arguments parsed correctly, save the command.
+		$data{core}{cmd}{$command} = \%cmd;
+		
+		&chat("Command created.");
 		
 		}
 	
@@ -999,7 +1014,6 @@ sub load_data  {
 		
 		%data = %{eval join '', @database};
 		}
-	close(IN);
 	}
 
 
@@ -1123,12 +1137,25 @@ sub resolve_existing_commands  {
 sub get_command_list  {
 	# Create a list of main commands.
 	my @list = keys %builtin_commands;
+	
+	# Add unit commands.
 	foreach my $unit (keys %units)  {
 		foreach (keys %{$units{$unit}{cmd}})  {
 			next if defined $units{$unit}{cmd}{$_}{dup_of};
 			push @list, $_;
 			}
 		}
+	
+	# Add user commands.
+	push @list, $_ foreach keys %{$data{core}{cmd}};
+	
+	# Put it in a hash to de-duplicate entries.
+	my %list;
+	$list{$_} = 1 foreach @list;
+	
+	# Now put it back.
+	@list = sort keys %list;
+	
 	return \@list;
 	}
 
