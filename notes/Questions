@@ -1,2 +1,3 @@
 Are whispers ever the right way to respond to user input?
 
+Should the default be to fail silently, or succeed silently?

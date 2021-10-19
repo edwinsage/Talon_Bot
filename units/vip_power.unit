@@ -1,0 +1,67 @@
+
+Command: !mycommand, !mycom
+
+Help: !mycommand lets users with VIP status create their very own command.
+Help: Usage: !mycommand !<keyword> <message text...> -- Adds a new command.  <keyword> must be a single word with no punctuation other than underscore.
+Help: Usage: !mycommand delete -- Deletes your current custom command.
+Help: Usage: !mycommand -- Show the name of your current custom command.
+
+Code:
+
+# Data management:
+# Maintain a list of user_id => command_name,
+# and put remaining info in the command itself.
+
+
+
+# VIP only.
+return unless $$tags{badges} =~ /vip/ or &admin_test($tags);
+
+my $list = &get_commands;
+
+unless ($args)  {
+	# Check the command to make sure it exists and is still owned.
+	if ( $DATA{"id_$user_id"}
+	  and $$list{$DATA{"id_$user_id"}}{attr}{owner} eq $user_id )  {
+		&chat("Current command is !" . $DATA{"id_$user_id"});
+		}
+	else  {
+		&chat("You do not currently have a command.");
+		delete $DATA{"id_$user_id"};
+		}
+	return;
+	}
+
+
+if ($args eq 'delete')  {
+	# Check if the user has a command.
+	if ( my $cmd = $DATA{"id_$user_id"} )  {
+		# Delete the entry regardless of whether we delete the command.
+		delete $DATA{"id_$user_id"};
+		
+		# Verify that the command belongs to this user.
+		return unless ( $$list{$cmd}{attr}{owner} eq $user_id );
+		
+		# Remove the command itself.
+		&delete_command($cmd);
+		&chat("Command !$cmd removed.");
+		}
+	return;
+	}
+
+# Add a new command.
+return unless $args =~ /^!(\w+)\s+(.*?)$/;
+my ($cmd, $text) = ($1, $2);
+
+# Check to make sure there is either no command with this name,
+# or that it already belongs to the user.
+if ( defined $$list{$cmd} and $$list{$cmd}{attr}{owner} ne $user_id )  {
+	&chat("A command with this name already exists!");
+	return;
+	}
+
+&add_command( $cmd, $text, { source => 'vip_power', owner => $user_id } );
+$DATA{"id_$user_id"} = $cmd;
+
+&chat("Command added!");
+

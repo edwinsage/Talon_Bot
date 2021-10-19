@@ -1,0 +1,10 @@
+
+
+
+## Warn vs. Debug
+Throw a warning if the program is doing something it never should.
+Sensitive data should not show up in output before debug 3.
+
+
+Commands should output nothing if the user is not eligible to use it.
+

@@ -485,8 +485,9 @@ while ( <$sock> )  {
 		$$tags{$key} = $value;
 		}
 	
-	
-	
+	# Replace the username with display name if it exists.
+	$user = $$tags{'display-name'} if $$tags{'display-name'};
+	my $user_id = $$tags{'user-id'};
 	
 	
 	if ( $cmd eq 'PRIVMSG' )  {
@@ -503,7 +504,7 @@ while ( <$sock> )  {
 			$c =~ tr/A-Z/a-z/;
 			# Handle builtin commands.
 			if ($builtin_commands{$c})  {
-				&{$builtin_commands{$c}}( $user, $tags, $args, \%cfg );
+				&{$builtin_commands{$c}}( $user, $user_id, $tags, $args, \%cfg );
 				}
 			else  {
 				my $found;
@@ -512,17 +513,33 @@ while ( <$sock> )  {
 					next unless (defined $units{$unit}{cmd}{$c}
 					    and ref $units{$unit}{cmd}{$c}{code});
 					# Execute command if it is found.
-					&{$units{$unit}{cmd}{$c}{code}}( $user, $tags, $msg, \%cfg, $args );
+					&{$units{$unit}{cmd}{$c}{code}}( $user, $user_id, $tags, $msg, \%cfg, $args );
 					$found = 1;
 					last;
 					}
 				# If no unit command was found,
 				# check for user commands.
-				if ( !$found and $data{core}{cmd}{$c} )  {
-					# For now there are no options,
-					# so just display the text.
-					&chat($data{core}{cmd}{$c}{text});
+				if (  !$found
+				  and $data{core}{cmd}{$c}
+				  and (&admin_test($tags)
+				     or (time - $data{core}{cmd}{$c}{lastrun} >= $data{core}{cmd}{$c}{attr}{cd})
+				     )
+				   )  {
+					my $message = $data{core}{cmd}{$c}{text};
 					
+					# Increment count.
+					$data{core}{cmd}{$c}{count}++;
+					
+					
+					# Replace variables.
+					$message =~ s/\$\(query\)/$args/g;
+					$message =~ s/\$\(user\)/$user/g;
+					$message =~ s/\$\(count\)/$data{core}{cmd}{$c}{count}/g;
+					
+					&chat($message);
+					
+					# Update the last run time.
+					$data{core}{cmd}{$c}{lastrun} = time;
 					}
 				
 				
@@ -539,7 +556,7 @@ while ( <$sock> )  {
 			debug 2,"Testing trigger $$trigger{test}";
 			my $result = eval $$trigger{test};
 			debug 1,"Trigger $$trigger{test} failed to run: $@" unless defined $result;
-			&{$$trigger{code}}( $user, $tags, $msg, \%cfg ) if $result;
+			&{$$trigger{code}}( $user, $user_id, $tags, $msg, \%cfg ) if $result;
 			}
 		
 		
@@ -565,7 +582,7 @@ sub units  {
 	# Show loaded units
 	# Enable and disable units
 	# Reload unit files
-	my ($user, $tags, $args) = @_;
+	my ($user, $user_id, $tags, $args) = @_;
 	
 	# Admin only
 	return unless &admin_test($tags);
@@ -632,12 +649,12 @@ sub units  {
 
 
 sub commands  {
-	my ($user, $tags, $args) = @_;
+	my ($user, $user_id, $tags, $args) = @_;
 	
 	
 	if ($args eq 'help' or $args eq '')  {
-		&chat("Available commands: !"
-		    . join (', !', sort @{&get_command_list}) );
+		&chat("Full list of available commands: !"
+		    . join ( ', !', sort keys %{ &get_commands } ) );
 		return;
 		}
 	
@@ -645,26 +662,38 @@ sub commands  {
 	# Admin only
 	return unless &admin_test($tags);
 	
-	if ( my ($attr, $command, $text) = $args =~ /^add\s+([\w=,]*)\s*!(\w+)\s+(.*)/i)  {
-		# Create a hash to hold the command until it's finished.
-		my %cmd = ( text => $text );
+	#if ( my ($attr, $command, $text) = $args =~ /^add\s+([\w=,]*)\s*(!(\w+)\s+(.*)/i)  {
+	if ( my ($name, $attr, $text) = $args =~ /^add\s+!(\w+)((?:\s+-\w+=\w+)*)\s+(.*)/i)  {
 		
 		# Parse attributes.
-		foreach (split /,/, $attr)  {
-			unless (/(\w+)=(\w+)/)  {
-				&chat("Argument $_ not parseable.");
-				return;
-				}
-			$cmd{attr}{$1} = $2;
-			
+		my %attr;
+		# Remove leading space.
+		$attr =~ s/^\s+//;
+		foreach (split /\s+/, $attr)  {
+			/(\w+)=(\w+)/;
+			$attr{$1} = $2;
 			}
 		
-		# If the arguments parsed correctly, save the command.
-		$data{core}{cmd}{$command} = \%cmd;
+		if (defined $data{core}{cmd}{$name})  {
+			&chat("Command modified.");
+			}
+		else  {
+			&chat("Command created.");
+			}
+		&add_command($name, $text, \%attr);
 		
-		&chat("Command created.");
 		
 		}
+	elsif ( my ($name) = $args =~ /^delete\s+!(\w+)/i)  {
+		if (defined $data{core}{cmd}{$name})  {
+			&delete_command ($name);
+			&chat("Command !$name deleted.");
+			}
+		else  {
+			&chat("Command not found.");
+			}
+		}
+	#elsif ( my ($attr, $command, $text) = $args =~ /^edit\s+([\w=,]*)\s*(!(\w+)\s+(.*)/i)  {
 	
 	}
 
@@ -683,17 +712,17 @@ sub license  {
 
 
 sub help  {
-	my ( $user, $tags, $args ) = @_;
+	my ( $user, $user_id, $tags, $args ) = @_;
 	# Get rid of ! if needed.
 	$args =~ s/^\!//;
 	
 	
 	if ($args eq 'units')  {
-		&units($user, $tags, 'help');
+		&units($user, $user_id, $tags, 'help');
 		return;
 		}
 	if ($args eq 'commands')  {
-		&commands($user, $tags, 'help');
+		&commands($user, $user_id, $tags, 'help');
 		return;
 		}
 	elsif ($args eq 'license')  {
@@ -720,11 +749,17 @@ sub help  {
 			}
 		}
 	# Default help
-	
-	my $list = &get_command_list;
-	
 	debug 3, \%units;
-	&chat("Available commands: !" . join (', !', sort @$list)
+	
+	# Limit the listed commands to core and unit primary commands.
+	my $list = &get_commands;
+	foreach ( keys %$list )  {
+		delete $$list{$_}
+		  if $$list{$_}{type} ne 'unit' and $$list{$_}{type} ne 'core';
+		}
+	
+	&chat("Available commands: !"
+	    . join ( ', !', sort (keys %$list) )
 	    . ".  For more information on a specific command, type '!help [command]'.");
 	}
 
@@ -855,7 +890,7 @@ sub load_unit  {
 		# Create the subroutine.
 		debug 1, "Pushing subroutine to output";
 		push @output, "\$tempsub = sub  {\n\t"
-		    . 'my ( $user, $tags, $msg, $cfg, $args ) = @_;'
+		    . 'my ( $user, $user_id, $tags, $msg, $cfg, $args ) = @_;'
 		    . "\n";
 		
 		foreach (@shlorp)  {
@@ -1104,6 +1139,9 @@ sub dump_data  {
 
 
 sub resolve_existing_commands  {
+	# This should probably be replaced entirely
+	# in favor of using &get_commands
+	
 	# Check for duplicate command names.
 	# Accepts an array reference which may be modified.
 	my $commands = $_[0];
@@ -1134,29 +1172,67 @@ sub resolve_existing_commands  {
 
 
 
-sub get_command_list  {
-	# Create a list of main commands.
-	my @list = keys %builtin_commands;
+sub get_commands  {
+	my %list;
+	
+	# First add all main commands.
+	$list{$_}{type} = 'core' foreach keys %builtin_commands;
 	
 	# Add unit commands.
 	foreach my $unit (keys %units)  {
 		foreach (keys %{$units{$unit}{cmd}})  {
-			next if defined $units{$unit}{cmd}{$_}{dup_of};
-			push @list, $_;
+			# Skip existing commands (which shouldn't exist anyway).
+			next if $list{$_};
+			
+			$list{$_}{unit} = $unit;
+			if (defined $units{$unit}{cmd}{$_}{dup_of})  {
+				$list{$_}{type} = 'alias';
+				$list{$_}{dup_of} = $units{$unit}{cmd}{$_}{dup_of};
+				}
+			else  {
+				$list{$_}{type} = 'unit';
+				}
 			}
 		}
 	
-	# Add user commands.
-	push @list, $_ foreach keys %{$data{core}{cmd}};
+	# Add user commands last.
+	foreach ( keys %{ $data{core}{cmd} } )  {
+		# Skip existing commands (which CAN happen with user commands).
+		next if $list{$_};
+		
+		$list{$_}{type} = 'user';
+		$list{$_}{attr} = $data{core}{cmd}{$_}{attr};
+		}
 	
-	# Put it in a hash to de-duplicate entries.
-	my %list;
-	$list{$_} = 1 foreach @list;
 	
-	# Now put it back.
-	@list = sort keys %list;
+	return \%list;
+	}
+
+
+
+sub add_command  {
+	my ($name, $text, $attr) = @_;
+	my %cmd = (text => $text);
 	
-	return \@list;
+	# Maybe this should include a check to make sure
+	# attr is a flat hash reference?
+	$cmd{attr} = $attr if $attr;
+	
+	$data{core}{cmd}{$name} = \%cmd;
+	}
+
+
+
+sub delete_command  {
+	my ($name) = @_;
+	
+	if ( defined $data{core}{cmd}{$name} )  {
+		debug 1,"Removing user command $name";
+		delete $data{core}{cmd}{$name};
+		}
+	else  {
+		debug 1,"Trying to remove user command $name, but it does not exist";
+		}
 	}
 
 

@@ -1,10 +1,13 @@
 Things to do still:
 
-* Make a unit for creating simple commands
+* Implement user levels on user (and possibly other?) commands
+* Have !commands only show commands you are eligible to use
 * Save unit on/off configuration
+* Make it possible to specify unit loading order, to manually resolve conflicts
 * Make debug messages more informative and standardized
 * Make startup information useful
 * Make AGPL compliance easier - maybe a task for StreamTaffy integration
+* Make more options configurable from the command line
 * Add config item for unit location(s)
 * Tell commands what command name they were called under
 * Pass commands a duplicate of %cfg, rather than the real one

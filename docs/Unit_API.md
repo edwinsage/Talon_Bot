@@ -1,7 +1,7 @@
 # API for unit files
 
-This will get moved to docs/ once there's something worth releasing here.
-
+Unit files have the ability to access a number of internal functions;
+however, only those documented here should be considered good practice.
 
 ## Current implementation:
 
@@ -81,11 +81,15 @@ It starts after the `Code:` header, and goes to the end of the block.
 The code section contains Perl code that will be run
 every time a command or trigger from the headers is matched.
 
-The code is provided with five variables every time it is run:
-`$user`, `$tags`, `$msg`, `$cfg`, and `$args`.
+The code is provided with the following variables every time it is run:
+`$user`, `$user_id`, `$tags`, `$msg`, `$cfg`, and `$args`.
 
 `$user` is the Twitch username of the user who invoked the command,
 or activated the trigger if applicable.
+
+`$user_id` is the numeric Twitch id for the user.  It is helpful for
+uniquely tracking users as this cannot be changed for an account, unlike
+username.
 
 `$tags` is a hash reference to all of the Twitch tags passed with the message.
 These are accessible as, for example, `$$tags{badges}`.
@@ -122,12 +126,40 @@ and its value should be a string, rather than any sort of reference.
 Multiple such variables can exist.
 
 
+### Available subroutines
+
+To send messages to chat, simply use the `&chat` subroutine:
+
+    &chat("Hello, world!");
+
+
 The `&admin_test` subroutine can be used to test
 if a user is a mod or broadcaster.
-It takes `$tags` as its argument:
+It needs to be passed the variable `$tags` as its argument:
 
     if (&admin_test{$tags}) { do stuff }
 
+
+The `&get_commands` subroutine can be used to inspect available commands. 
+`&get_commands` will return a hash reference with keys consisting of all
+available commands and one or more fields depending on the command type. 
+All commands will have the key `type`, indicating the origin of the
+command, which will be one of `core`, `unit`, `alias`, or `user`.  Other
+keys include `unit` for the unit file that added a unit or alias type,
+`dup_of` for aliases that shows what command it is an alias of, and
+`attr` which contains a nested hash of any attribute values that a user
+command has.
+
+The `&add_command`, and `&delete_command` subroutines can be used to
+manipulate user commands.  They will not affect commands of any other
+type.  `&add_command` expects to be passed two or three arguments: the
+name of the command to add, the text to display when the command is
+called, and optionally a hash reference containing any attributes that
+should be set for the command.  It will overwrite an existing user
+command with the same name.  `&delete_command` simply expects to be
+passed the name of the user command to remove.  It is recommended that a
+unit track any user commands it creates, and not modify any that it did
+not create.
 
 
 
@@ -199,20 +231,6 @@ you will have to take care to break it up; in this case you could write
     Command: !another_command
     ...etc.
     
-
-
-## Odds & ends notes
-
-startup
-regex hooks
-storage
-OBS plugin-teraction
-timers
-other triggers?
-
-
-
-
 
 
 

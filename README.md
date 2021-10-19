@@ -9,6 +9,8 @@ Talon_Bot is intended to be an extendable, hackable bot for Twitch chat.
 
 * Responds to commands, or other chat-driven triggers
 
+* Allows creating new simple commands directly from Twitch chat.
+
 * Creates timestamped logs of chats
 
 * Interactive help system
@@ -49,7 +51,7 @@ Talon_Bot is intended to be an extendable, hackable bot for Twitch chat.
 Code is still in alpha and a bit of a mess.  However, there is a
 fledgling plugin API for adding commands that lets you avoid all
 knowledge of the Talon_Bot code, except for a few variables.  Check out
-notes/API.md for details so far.
+docs/Unit_API.md for details.
 
 Note that Talon_Bot is released under the AGPL, meaning that if you host the bot
 for other people to use, you must make sure that the links to the source code
