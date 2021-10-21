@@ -53,11 +53,23 @@ if ($args eq 'delete')  {
 return unless $args =~ /^!(\w+)\s+(.*?)$/;
 my ($cmd, $text) = ($1, $2);
 
+# All commands should be lowercase.
+$cmd = lc $cmd;
+
 # Check to make sure there is either no command with this name,
 # or that it already belongs to the user.
 if ( defined $$list{$cmd} and $$list{$cmd}{attr}{owner} ne $user_id )  {
 	&chat("A command with this name already exists!");
 	return;
+	}
+
+# Check if the user already has a command.
+if ( my $cmd = $DATA{"id_$user_id"} )  {
+	# Delete the entry regardless of whether we delete the command.
+	delete $DATA{"id_$user_id"};
+	
+	# Verify that the command belongs to this user.
+	&delete_command($cmd) if ( $$list{$cmd}{attr}{owner} eq $user_id );
 	}
 
 &add_command( $cmd, $text, { source => 'vip_power', owner => $user_id } );
