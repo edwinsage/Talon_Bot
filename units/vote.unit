@@ -237,10 +237,8 @@ sub sub_vote_load  {
 		}
 	
 	# Remove the saved poll
-	if ($name)  {
-		delete $DATA{'poll' . $name};
-		delete $DATA{'votes' . $name};
-		}
+	delete $DATA{'poll' . $name};
+	delete $DATA{'votes' . $name};
 	
 	}
 
