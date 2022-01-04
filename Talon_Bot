@@ -501,7 +501,7 @@ while ( <$sock> )  {
 		if ( $msg =~ /^!(\w+)\s*(\S.*)?/ )  {
 			my ( $c, $args ) = ($1, $2);
 			#say $c, $args;
-			$c =~ tr/A-Z/a-z/;
+			$c = lc $c;
 			# Handle builtin commands.
 			if ($builtin_commands{$c})  {
 				&{$builtin_commands{$c}}( $user, $user_id, $tags, $args, \%cfg );
@@ -664,6 +664,9 @@ sub commands  {
 	
 	#if ( my ($attr, $command, $text) = $args =~ /^add\s+([\w=,]*)\s*(!(\w+)\s+(.*)/i)  {
 	if ( my ($name, $attr, $text) = $args =~ /^add\s+!(\w+)((?:\s+-\w+=\w+)*)\s+(.*)/i)  {
+		# All commands should be lowercase.
+		$name = lc $name;
+		
 		
 		# Parse attributes.
 		my %attr;
@@ -1212,19 +1215,23 @@ sub get_commands  {
 
 sub add_command  {
 	my ($name, $text, $attr) = @_;
+	# All commands should be lowercase.
+	$name = lc $name;
+	
 	my %cmd = (text => $text);
 	
 	# Maybe this should include a check to make sure
 	# attr is a flat hash reference?
 	$cmd{attr} = $attr if $attr;
 	
-	$data{core}{cmd}{$name} = \%cmd;
+	$data{core}{cmd}{lc $name} = \%cmd;
 	}
 
 
 
 sub delete_command  {
 	my ($name) = @_;
+	$name = lc $name;
 	
 	if ( defined $data{core}{cmd}{$name} )  {
 		debug 1,"Removing user command $name";
