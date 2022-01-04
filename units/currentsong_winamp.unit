@@ -13,5 +13,15 @@ if ($song eq '' or $status ne '')  {
 	return;
 	}
 
+# Make OCRemix tracks have a proper URL.
+
+if ($song =~ /\[ocremix.org (\d+)\]/)  {
+	
+	# Make the URL
+	my $url = 'ocremix.org/remix/OCR' . sprintf("%05d", $1);
+	$song=~ s/\[ocremix.org (\d+)\]/[ $url ]/;
+	}
+
+
 &chat("Current song: $song");
 return;
