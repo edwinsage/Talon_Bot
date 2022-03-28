@@ -1,7 +1,7 @@
 package Twitch;
 
 # Interact with the Twitch API in nice predictable ways.
-# Copyright 2021 Michael Pirkola
+# Copyright 2021, 2022 Michael Pirkola
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of version 3 of the GNU Affero General Public License as
@@ -21,6 +21,8 @@ package Twitch;
 #   get_user_id($auth, $username) returns the numerical user ID from a provided
 #     username.  Most other functions that target a user require an ID
 #     rather than a username.
+#   get_username($auth, $user_id) returns the display name for a given numerical
+#     user ID.
 #   get_tags($auth, $id) returns an array of the tag IDs associated with a
 #     given user ID.  Automatic tags, such as language, are not returned.
 #   get_channel_info($auth, $id) returns a hash reference of the information
@@ -96,6 +98,20 @@ sub get_user_id  {
 	my ($id) = $$res{content} =~ /"id":"(\d+)"/;
 	
 	return $id;
+	
+	}
+
+
+sub get_username  {
+	my ( $auth, $user_id ) = @_;
+	
+	my $res = &twitch_app_request($auth, 'GET', "https://api.twitch.tv/helix/users?id=$user_id");
+	
+	return unless $$res{success};
+	
+	my ($name) = $$res{content} =~ /"display_name":".*"/;
+	
+	return $name;
 	
 	}
 
@@ -200,6 +216,13 @@ sub put_channel_info  {
 	
 	
 	}
+
+
+
+
+##########################
+#  Internal Subroutines  #
+##########################
 
 
 sub twitch_app_request  {
