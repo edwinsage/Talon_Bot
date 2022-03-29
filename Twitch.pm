@@ -109,7 +109,7 @@ sub get_username  {
 	
 	return unless $$res{success};
 	
-	my ($name) = $$res{content} =~ /"display_name":".*"/;
+	my ($name) = $$res{content} =~ /"display_name":"(.*?)"/;
 	
 	return $name;
 	
