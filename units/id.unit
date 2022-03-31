@@ -7,28 +7,28 @@ Help+: Advanced Usage: !id unset -- Removes a previously set ID.
 
 
 Code:
-if ( $args and &admin_test($tags) )  {
+if ( $args and admin_test($tags) )  {
 	if ( $args =~ /^unset/ )  {
 		$VARS = undef;
-		&chat('ID unset.');
+		chat('ID unset.');
 		return;
 		}
 	
 	my ( $id ) = $args =~ /^set (.+)$/;
 	if ( length($id) >= 5 )  {
 		$VARS = $id;
-		&chat("ID: $VARS");
+		chat("ID: $VARS");
 		return;
 		}
 	# Bad command
-	&chat("Could not set ID to $args: bad format.");
+	chat("Could not set ID to $args: bad format.");
 	return;
 	}
 # Check for an ID being set
 unless ( $VARS )  {
-	&chat('No arena ID set.');
+	chat('No arena ID set.');
 	return;
 	}
 
 # The actual command result:
-&chat("Arena ID: $VARS");
+chat("Arena ID: $VARS");

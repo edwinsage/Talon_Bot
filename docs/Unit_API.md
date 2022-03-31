@@ -128,20 +128,20 @@ Multiple such variables can exist.
 
 ### Available subroutines
 
-To send messages to chat, simply use the `&chat` subroutine:
+To send messages to chat, simply use the `chat()` subroutine:
 
-    &chat("Hello, world!");
+    chat("Hello, world!");
 
 
-The `&admin_test` subroutine can be used to test
+The `admin_test()` subroutine can be used to test
 if a user is a mod or broadcaster.
 It needs to be passed the variable `$tags` as its argument:
 
-    if (&admin_test{$tags}) { do stuff }
+    if ( admin_test{$tags} ) { do stuff }
 
 
-The `&get_commands` subroutine can be used to inspect available commands. 
-`&get_commands` will return a hash reference with keys consisting of all
+The `get_commands()` subroutine can be used to inspect available commands. 
+`get_commands()` will return a hash reference with keys consisting of all
 available commands and one or more fields depending on the command type. 
 All commands will have the key `type`, indicating the origin of the
 command, which will be one of `core`, `unit`, `alias`, or `user`.  Other
@@ -150,13 +150,13 @@ keys include `unit` for the unit file that added a unit or alias type,
 `attr` which contains a nested hash of any attribute values that a user
 command has.
 
-The `&add_command`, and `&delete_command` subroutines can be used to
+The `add_command()`, and `delete_command()` subroutines can be used to
 manipulate user commands.  They will not affect commands of any other
-type.  `&add_command` expects to be passed two or three arguments: the
+type.  `add_command()` expects to be passed two or three arguments: the
 name of the command to add, the text to display when the command is
 called, and optionally a hash reference containing any attributes that
 should be set for the command.  It will overwrite an existing user
-command with the same name.  `&delete_command` simply expects to be
+command with the same name.  `delete_command()` simply expects to be
 passed the name of the user command to remove.  It is recommended that a
 unit track any user commands it creates, and not modify any that it did
 not create.
@@ -191,8 +191,8 @@ you will have to take care to break it up; in this case you could write
     # subroutine, until the end of the block or end of file.  It is executed
     # whenever the command is typed, or whenever the trigger is triggered.
     
-    # Send messages to chat with &chat():
-    &chat("Hello world!");
+    # Send messages to chat with chat():
+    chat("Hello world!");
     
     # Local variables can be used freely.
     # All local variables only last for that single call of the command.
@@ -208,7 +208,7 @@ you will have to take care to break it up; in this case you could write
     $VARS{user_list} = [ ('Alison', 'Steve', 'Xobiv') ];
     
     foreach my $name ( @{ $VARS{user_list} } )  {  # This takes some dereferencing
-        &chat("Hello, $name!");
+        chat("Hello, $name!");
         # The next line makes a nested data structure
         $VARS{"$name"}{was_greeted} = 'yes';
         }

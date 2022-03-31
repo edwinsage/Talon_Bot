@@ -15,18 +15,18 @@ Code:
 
 
 # VIP only.
-return unless $$tags{badges} =~ /vip/ or &admin_test($tags);
+return unless $$tags{badges} =~ /vip/ or admin_test($tags);
 
-my $list = &get_commands;
+my $list = get_commands();
 
 unless ($args)  {
 	# Check the command to make sure it exists and is still owned.
 	if ( $DATA{"id_$user_id"}
 	  and $$list{$DATA{"id_$user_id"}}{attr}{owner} eq $user_id )  {
-		&chat("Current command is !" . $DATA{"id_$user_id"});
+		chat("Current command is !" . $DATA{"id_$user_id"});
 		}
 	else  {
-		&chat("You do not currently have a command.");
+		chat("You do not currently have a command.");
 		delete $DATA{"id_$user_id"};
 		}
 	return;
@@ -43,8 +43,8 @@ if ($args eq 'delete')  {
 		return unless ( $$list{$cmd}{attr}{owner} eq $user_id );
 		
 		# Remove the command itself.
-		&delete_command($cmd);
-		&chat("Command !$cmd removed.");
+		delete_command($cmd);
+		chat("Command !$cmd removed.");
 		}
 	return;
 	}
@@ -59,7 +59,7 @@ $cmd = lc $cmd;
 # Check to make sure there is either no command with this name,
 # or that it already belongs to the user.
 if ( defined $$list{$cmd} and $$list{$cmd}{attr}{owner} ne $user_id )  {
-	&chat("A command with this name already exists!");
+	chat("A command with this name already exists!");
 	return;
 	}
 
@@ -69,11 +69,11 @@ if ( my $cmd = $DATA{"id_$user_id"} )  {
 	delete $DATA{"id_$user_id"};
 	
 	# Verify that the command belongs to this user.
-	&delete_command($cmd) if ( $$list{$cmd}{attr}{owner} eq $user_id );
+	delete_command($cmd) if ( $$list{$cmd}{attr}{owner} eq $user_id );
 	}
 
-&add_command( $cmd, $text, { source => 'vip_power', owner => $user_id } );
+add_command( $cmd, $text, { source => 'vip_power', owner => $user_id } );
 $DATA{"id_$user_id"} = $cmd;
 
-&chat("Command added!");
+chat("Command added!");
 

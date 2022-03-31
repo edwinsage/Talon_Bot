@@ -9,7 +9,7 @@ my $response = `wget -O - localhost:8181`;
 # If a track is playing, there will be no text in the second match.
 my ($song, $status) = $response =~ m|<B>(.*)</B>(.*?)<BR|;
 if ($song eq '' or $status ne '')  {
-	&chat('No song is playing.');
+	chat('No song is playing.');
 	return;
 	}
 
@@ -23,5 +23,5 @@ if ($song =~ /\[ocremix.org (\d+)\]/)  {
 	}
 
 
-&chat("Current song: $song");
+chat("Current song: $song");
 return;

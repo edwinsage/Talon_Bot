@@ -2,7 +2,7 @@
 
 # Talon_Bot, a multipurpose bot for Twitch chat
 my $version = '0.5.0-alpha';
-# Copyright 2020, 2021 Michael Pirkola
+# Copyright 2020, 2021, 2022 Michael Pirkola
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of version 3 of the GNU Affero General Public License as
@@ -318,7 +318,7 @@ my %units;
 my %user_commands;
 
 # Load data file
-&load_data;
+load_data();
 
 
 
@@ -386,7 +386,7 @@ foreach (split /,\s*/, $cfg{unit_blacklist})  {
 	}
 
 # Load all units that passed muster.
-&load_unit($_) foreach (sort keys %available_units);
+load_unit($_) foreach (sort keys %available_units);
 
 
 
@@ -451,7 +451,7 @@ while ( <$sock> )  {
 		say $sock 'PONG :tmi.twitch.tv';
 		next;
 		}
-	$time = &timestamp;
+	$time = timestamp();
 	
 	
 	print RAWLOG "$time $_" if $cfg{rawlog};
@@ -492,7 +492,7 @@ while ( <$sock> )  {
 	
 	if ( $cmd eq 'PRIVMSG' )  {
 		# Print message.
-		&term_out( $user, $tags, $msg );
+		term_out( $user, $tags, $msg );
 		
 		# Log chat messages.
 		print LOG "$time $user: $msg\n" if $cfg{chatlog};
@@ -521,7 +521,7 @@ while ( <$sock> )  {
 				# check for user commands.
 				if (  !$found
 				  and $data{core}{cmd}{$c}
-				  and (&admin_test($tags)
+				  and ( admin_test($tags)
 				     or (time - $data{core}{cmd}{$c}{lastrun} >= $data{core}{cmd}{$c}{attr}{cd})
 				     )
 				   )  {
@@ -536,7 +536,7 @@ while ( <$sock> )  {
 					$message =~ s/\$\(user\)/$user/g;
 					$message =~ s/\$\(count\)/$data{core}{cmd}{$c}{count}/g;
 					
-					&chat($message);
+					chat($message);
 					
 					# Update the last run time.
 					$data{core}{cmd}{$c}{lastrun} = time;
@@ -568,7 +568,7 @@ while ( <$sock> )  {
 
 
 
-&logoff;
+logoff();
 
 
 
@@ -585,21 +585,21 @@ sub units  {
 	my ($user, $user_id, $tags, $args) = @_;
 	
 	# Admin only
-	return unless &admin_test($tags);
+	return unless admin_test($tags);
 	
 	if ($args eq 'help')  {
-		&chat("Advanced Usage: !units activate/deactivate/reload [unit1] [unit2...]"
+		chat("Advanced Usage: !units activate/deactivate/reload [unit1] [unit2...]"
 		    . " -- Activate, deactivate, or reload a unit file.");
 		return;
 		}
 	elsif ($args =~ /^activate\s+(.*)/)  {
 		my @list = split /\s+/, $1;
 		foreach my $unit (@list)  {
-			if ( &load_unit($unit) )  {
-				&chat("Unit $unit loaded.");
+			if ( load_unit($unit) )  {
+				chat("Unit $unit loaded.");
 				}
 			else  {
-				&chat("Could not load unit $unit.");
+				chat("Could not load unit $unit.");
 				}
 			}
 		
@@ -609,7 +609,7 @@ sub units  {
 	elsif ($args =~ /^deactivate\s+(.*)/)  {
 		my @list = split /\s+/, $1;
 		foreach my $unit (@list)  {
-			&unload_unit($unit);
+			unload_unit($unit);
 			}
 		
 		# Only display default text if no units were listed.
@@ -618,12 +618,12 @@ sub units  {
 	elsif ($args =~ /^reload\s+(.*)/)  {
 		my @list = split /\s+/, $1;
 		foreach my $unit (@list)  {
-			&unload_unit($unit);
-			if ( &load_unit($unit) )  {
-				&chat("Unit $unit loaded.");
+			unload_unit($unit);
+			if ( load_unit($unit) )  {
+				chat("Unit $unit loaded.");
 				}
 			else  {
-				&chat("Could not load unit $unit.");
+				chat("Could not load unit $unit.");
 				}
 			}
 		
@@ -643,7 +643,7 @@ sub units  {
 	    . join (', ', sort @list)
 	    . '.'
 	    if @list;
-	&chat($message);
+	chat($message);
 	}
 
 
@@ -653,14 +653,14 @@ sub commands  {
 	
 	
 	if ($args eq 'help' or $args eq '')  {
-		&chat("Full list of available commands: !"
-		    . join ( ', !', sort keys %{ &get_commands } ) );
+		chat("Full list of available commands: !"
+		    . join ( ', !', sort keys %{ get_commands() } ) );
 		return;
 		}
 	
 	
 	# Admin only
-	return unless &admin_test($tags);
+	return unless admin_test($tags);
 	
 	#if ( my ($attr, $command, $text) = $args =~ /^add\s+([\w=,]*)\s*(!(\w+)\s+(.*)/i)  {
 	if ( my ($name, $attr, $text) = $args =~ /^add\s+!(\w+)((?:\s+-\w+=\w+)*)\s+(.*)/i)  {
@@ -678,22 +678,22 @@ sub commands  {
 			}
 		
 		if (defined $data{core}{cmd}{$name})  {
-			&chat("Command modified.");
+			chat("Command modified.");
 			}
 		else  {
-			&chat("Command created.");
+			chat("Command created.");
 			}
-		&add_command($name, $text, \%attr);
+		add_command($name, $text, \%attr);
 		
 		
 		}
 	elsif ( my ($name) = $args =~ /^delete\s+!(\w+)/i)  {
 		if (defined $data{core}{cmd}{$name})  {
-			&delete_command ($name);
-			&chat("Command !$name deleted.");
+			delete_command($name);
+			chat("Command !$name deleted.");
 			}
 		else  {
-			&chat("Command not found.");
+			chat("Command not found.");
 			}
 		}
 	#elsif ( my ($attr, $command, $text) = $args =~ /^edit\s+([\w=,]*)\s*(!(\w+)\s+(.*)/i)  {
@@ -703,7 +703,7 @@ sub commands  {
 
 
 sub license  {
-	&chat("Talon_Bot version $version - This software is distributed under the terms of the " .
+	chat("Talon_Bot version $version - This software is distributed under the terms of the " .
 	      "GNU Affero General Public License.  " .
 	      "This means that you, the user, have the right to download, modify, and run the " .
 	      "software yourself if you wish, under the same terms.  " .
@@ -721,15 +721,15 @@ sub help  {
 	
 	
 	if ($args eq 'units')  {
-		&units($user, $user_id, $tags, 'help');
+		units($user, $user_id, $tags, 'help');
 		return;
 		}
 	if ($args eq 'commands')  {
-		&commands($user, $user_id, $tags, 'help');
+		commands($user, $user_id, $tags, 'help');
 		return;
 		}
 	elsif ($args eq 'license')  {
-		&license;
+		license();
 		return;
 		}
 	elsif ( $args ne 'help' )  {
@@ -744,9 +744,9 @@ sub help  {
 				}
 			}
 		if ($found)  {
-			&chat($_) foreach @{$units{$found}{cmd}{$args}{help}};
-			if (&admin_test($tags))  {
-				&chat($_) foreach @{$units{$found}{cmd}{$args}{help_plus}};
+			chat($_) foreach @{$units{$found}{cmd}{$args}{help}};
+			if ( admin_test($tags) )  {
+				chat($_) foreach @{$units{$found}{cmd}{$args}{help_plus}};
 				}
 			return;
 			}
@@ -755,13 +755,13 @@ sub help  {
 	debug 3, \%units;
 	
 	# Limit the listed commands to core and unit primary commands.
-	my $list = &get_commands;
+	my $list = get_commands();
 	foreach ( keys %$list )  {
 		delete $$list{$_}
 		  if $$list{$_}{type} ne 'unit' and $$list{$_}{type} ne 'core';
 		}
 	
-	&chat("Available commands: !"
+	chat("Available commands: !"
 	    . join ( ', !', sort (keys %$list) )
 	    . ".  For more information on a specific command, type '!help [command]'.");
 	}
@@ -877,7 +877,7 @@ sub load_unit  {
 			}
 		
 		# Check for duplicate command names.
-		&resolve_existing_commands(\@commands);
+		resolve_existing_commands(\@commands);
 		
 		
 		# Basic checks.  Does this unit have the bare minimum?
@@ -979,7 +979,7 @@ sub unload_unit  {
 	debug 2,"Attempting to unload unit $unit.";
 	# Check if unit is loaded.
 	unless (defined $units{$unit})  {
-		&chat("Unit $unit is not loaded!");
+		chat("Unit $unit is not loaded!");
 		return;
 		}
 	
@@ -1099,7 +1099,7 @@ sub dump_data  {
 		}
 	# We don't need the current version,
 	# we need the last time the database format was changed.
-	my $time = &timestamp;
+	my $time = timestamp();
 	print OUT "v$dbVersion - written $time\n";
 	
 	debug 2,'Writing %data to file';
@@ -1143,7 +1143,7 @@ sub dump_data  {
 
 sub resolve_existing_commands  {
 	# This should probably be replaced entirely
-	# in favor of using &get_commands
+	# in favor of using get_commands()
 	
 	# Check for duplicate command names.
 	# Accepts an array reference which may be modified.
@@ -1248,7 +1248,7 @@ sub term_out  {
 	my ( $user, $tags, $msg ) = @_;
 	my $status;
 	# Check for mod status
-	$status = '*' if &admin_test($tags);
+	$status = '*' if admin_test($tags);
 	
 	# Get user color.
 	my ( $cr, $cg, $cb ) = $$tags{color} =~ /#(..)(..)(..)/;
@@ -1338,7 +1338,7 @@ sub send_overlay_event  {
 sub chat  {
 	my ( $msg ) = @_;
 	say $sock "PRIVMSG $cfg{channel} :$msg" if defined $sock;
-	&term_out( $cfg{user},
+	term_out( $cfg{user},
 	    { color => "#$cfg{bot_color}", badges => 'moderator' }, $msg );
 	print LOG "$time $cfg{user}: $msg\n" if $cfg{chatlog};
 	}
@@ -1371,7 +1371,7 @@ sub timestamp  {
 sub signal_handler  {
 	say 'Logging off.';
 	say $sock 'QUIT';
-	&logoff;
+	logoff();
 	wait;
 	exit;
 	}
@@ -1388,7 +1388,7 @@ sub debug ($$)  {
 
 
 sub logoff  {
-	&dump_data( \%cfg, $dbVersion );
+	dump_data( \%cfg, $dbVersion );
 	if ( $cfg{rawlog} )  {
 		print RAWLOG "\n--\n\n";
 		close RAWLOG

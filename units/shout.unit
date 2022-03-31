@@ -11,7 +11,7 @@ Help+: Advanced Usage: !shout list -- List all keywords currently saved.
 Code:
 
 # Mods only.
-return unless &admin_test($tags);
+return unless admin_test($tags);
 
 my $message;
 
@@ -53,4 +53,4 @@ else  {
 
 
 # The actual command result:
-&chat($message);
+chat($message);

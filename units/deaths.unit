@@ -8,31 +8,31 @@ Help+: Advanced Usage: !deaths [+/-/#] -- Increment, decrement, or set the death
 Code:
 # Make sure it's a number.
 $DATA{deaths} = 0 unless $DATA{deaths};
-unless (&admin_test($tags) and $args)  {
-	&chat("Current death count: $DATA{deaths}");
+unless ( admin_test($tags) and $args )  {
+	chat("Current death count: $DATA{deaths}");
 	return;
 	}
 
 # Beyond this point, only admins with args.
 if ($args eq '+')  {
 	$DATA{deaths}++;
-	&chat("Death count increased to $DATA{deaths}");
+	chat("Death count increased to $DATA{deaths}");
 	}
 elsif ($args eq '-')  {
 	if ($DATA{deaths})  {
 		$DATA{deaths}--;
-		&chat("Death count decreased to $DATA{deaths}");
+		chat("Death count decreased to $DATA{deaths}");
 		}
 	else  {
-		&chat("Death count is already 0");
+		chat("Death count is already 0");
 		}
 	}
 elsif ($args =~ /^\d+$/)  {
 	$DATA{deaths} = $args;
-	&chat("Death count set to $DATA{deaths}");
+	chat("Death count set to $DATA{deaths}");
 	}
 else  {
-	&chat("Argument $args not recognized.");
+	chat("Argument $args not recognized.");
 	}
 
 

@@ -7,19 +7,19 @@ Help+: Advanced Usage: !channel save [name], !channel load [name] -- Saves or lo
 Code:
 
 # Admin only
-return unless( &admin_test($tags) );
+return unless( admin_test($tags) );
 
 # Check for essential config
 unless ($$cfg{client_id})  {
-	&chat('Twitch Client ID not set in config file.  You must register a client as a Twitch developer to use this feature.');
+	chat('Twitch Client ID not set in config file.  You must register a client as a Twitch developer to use this feature.');
 	return;
 	}
 unless ($$cfg{client_secret})  {
-	&chat('Twitch Client secret not set in config file.  You must register a client as a Twitch developer to use this feature.');
+	chat('Twitch Client secret not set in config file.  You must register a client as a Twitch developer to use this feature.');
 	return;
 	}
 unless ($$cfg{user_access_token})  {
-	&chat('Twitch user token not set in config file.  You must authenticate this app on Twitch to use this feature.  (Implementation pending)');
+	chat('Twitch user token not set in config file.  You must authenticate this app on Twitch to use this feature.  (Implementation pending)');
 	return;
 	}
 
@@ -35,7 +35,7 @@ my @args = split / /, $args;
 if ($args[0] eq 'save')  {BLOCK:{
 	# There needs to be a name to save as.
 	unless ($args[1] =~ /^\w+$/)  {
-		&chat("You need to specify a name to save this configuration under.  See !help channel for more info.");
+		chat("You need to specify a name to save this configuration under.  See !help channel for more info.");
 		last BLOCK;
 		}
 	
@@ -60,13 +60,13 @@ if ($args[0] eq 'save')  {BLOCK:{
 elsif ($args[0] eq 'load')  {BLOCK:{
 	# There needs to be a name to load.
 	unless ($args[1] =~ /^\w+$/)  {
-		&chat("You need to specify a name to save this configuration under.  See !help channel for more info.");
+		chat("You need to specify a name to save this configuration under.  See !help channel for more info.");
 		last BLOCK;
 		}
 	
 	# That name needs to exist.
 	unless ($DATA{"save_$args[1]"})  {
-		&chat("No configuration with that name exists.  Try !channel list");
+		chat("No configuration with that name exists.  Try !channel list");
 		last BLOCK;
 		}
 	
@@ -77,7 +77,7 @@ elsif ($args[0] eq 'load')  {BLOCK:{
 	
 	unless ($$hash{game_id})  {
 		debug 1,qq|Failure reading data from $DATA{"save_$args[1]"}|;
-		&chat("Failed to read data.");
+		chat("Failed to read data.");
 		last BLOCK;
 		}
 	
