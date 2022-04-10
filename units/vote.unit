@@ -26,6 +26,8 @@ if ( admin_test($tags) and $args =~ /^new (.*)/i )  {
 	$VARS{poll} = $1;
 	# Blank the votes
 	$VARS{votes} = {};
+	
+	sub_vote_save();
 	return;
 	}
 
@@ -55,6 +57,7 @@ if ( admin_test($tags) and $args =~ /^(end|stop)$/i )  {
 	
 	$VARS{poll} = '';
 	chat('Voting closed.');
+	sub_vote_save();
 	return;
 	}
 
@@ -128,6 +131,10 @@ if ( admin_test($tags) and $args =~ /^load\s*(\w*)$/i )  {
 	
 	# Unmarshall votes from storage
 	sub_vote_load($name);
+	
+	# Remove the saved poll
+	delete $DATA{'poll' . $name};
+	delete $DATA{'votes' . $name};
 	
 	chat("Poll restored.");
 	
@@ -235,10 +242,6 @@ sub sub_vote_load  {
 		
 		$VARS{votes}{$user} = $vote;
 		}
-	
-	# Remove the saved poll
-	delete $DATA{'poll' . $name};
-	delete $DATA{'votes' . $name};
 	
 	}
 
