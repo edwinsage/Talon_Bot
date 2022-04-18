@@ -52,6 +52,7 @@ sub usage  {
 	#       -h   --help         Print this help text
 	#       -c   --config       Specify a config file other than .Talon_Bot.rc
 	#       -t   --test         Don't connect to Twitch chat, just run interactively
+	#       -b   --boring       Only display and log chat, don't interact
 	#       -d   --debug        Enable extra debug output
 	#   
 	#   END_HELP
@@ -100,10 +101,11 @@ my %cfg = (
 
 # Parse command line options.
 Getopt::Long::Configure("bundling");
-my ( $config_file, $test , $debug );
+my ( $config_file, $test, $boring, $debug );
 
 GetOptions( "test|t" => \$test,
 	    "config|c=s" => \$config_file,
+	    "boring|b" => \$boring,
 	    "debug|d+" => \$debug,
 	    "help|h" => \&usage
 	    );
@@ -318,7 +320,7 @@ my %units;
 my %user_commands;
 
 # Load data file
-load_data();
+load_data() unless $boring;
 
 
 
@@ -341,7 +343,7 @@ foreach (keys %{$data{core}})  {
 #############
 
 # Find unit files.
-my @unit_files = <units/*.unit>;
+my @unit_files = <units/*.unit>  unless $boring;
 my %available_units;
 debug 1,"Unit files: " . join (', ', @unit_files);
 
@@ -428,6 +430,10 @@ else  {
 	tie *$sock, 'WrapHandles', \*STDIN, \*STDOUT;
 	}
 
+if ($boring)  {
+	say 'Running non-interactively, not listening for commands...';
+	}
+
 # Signal handling, for clean exiting.
 $SIG{INT}  = \&signal_handler;
 $SIG{TERM}  = \&signal_handler;
@@ -498,7 +504,7 @@ while ( <$sock> )  {
 		print LOG "$time $user: $msg\n" if $cfg{chatlog};
 		#say "Message: $msg";
 		# Look for a command.
-		if ( $msg =~ /^!(\w+)\s*(\S.*)?/ )  {
+		if ( $msg =~ /^!(\w+)\s*(\S.*)?/ and !$boring )  {
 			my ( $c, $args ) = ($1, $2);
 			#say $c, $args;
 			$c = lc $c;
@@ -550,6 +556,7 @@ while ( <$sock> )  {
 		
 		}
 	
+	next if $boring;
 	# Check all triggers for matches
 	foreach my $unit (keys %units)  {
 		foreach my $trigger (@{$units{$unit}{trigger}})  {
@@ -1388,7 +1395,7 @@ sub debug ($$)  {
 
 
 sub logoff  {
-	dump_data( \%cfg, $dbVersion );
+	dump_data( \%cfg, $dbVersion ) unless $boring;
 	if ( $cfg{rawlog} )  {
 		print RAWLOG "\n--\n\n";
 		close RAWLOG
