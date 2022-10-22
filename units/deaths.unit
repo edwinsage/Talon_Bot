@@ -8,7 +8,7 @@ Help+: Advanced Usage: !deaths [+/-/#] -- Increment, decrement, or set the death
 Code:
 # Make sure it's a number.
 $DATA{deaths} = 0 unless $DATA{deaths};
-unless ( admin_test($tags) and $args )  {
+unless ( admin_test($tags) and $args ne '' )  {
 	chat("Current death count: $DATA{deaths}");
 	return;
 	}
