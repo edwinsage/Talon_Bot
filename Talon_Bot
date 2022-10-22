@@ -1361,6 +1361,10 @@ sub whisper  {
 
 
 sub admin_test  {
+	# Takes a hashref of the tags sent with a message from Twitch.
+	# Returns 1 if the sender was the broadcaster or a moderator,
+	# and 0 otherwise.
+	
 	my ($tags) = @_;
 	return 1 if ( $tags->{badges} =~ /(broadcaster|moderator)/ );
 	return 0;
@@ -1369,6 +1373,8 @@ sub admin_test  {
 
 
 sub timestamp  {
+	# Takes no arguments, and returns a string containing a datestamp.
+	
 	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
 	return sprintf ( "%d\.%02d.%02d-%02d:%02d:%02d", ($year + 1900, $mon + 1, $mday, $hour, $min, $sec) );
 	}
@@ -1386,8 +1392,18 @@ sub signal_handler  {
 
 
 sub debug ($$)  {
+	# Expects two arguments:
+	#  a number, giving the debug level the message should be displayed at
+	#  a string or a reference, containing the text of the debug message
+	# If the second argument given is a reference, then the contents will
+	# be dumped with Data::Dumper.
+	
+	# Check if this message should be displayed at the current debug level.
 	return unless $debug >= $_[0];
+	
 	my $msg = $_[1];
+	
+	# If a reference was given, use Data::Dumper to render it.
 	$msg = Dumper($_[1]) if ref $_[1];
 	print "DEBUG$_[0]: $msg\n";
 	}

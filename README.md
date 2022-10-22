@@ -53,9 +53,9 @@ fledgling plugin API for adding commands that lets you avoid all
 knowledge of the Talon_Bot code, except for a few variables.  Check out
 docs/Unit_API.md for details.
 
-Note that Talon_Bot is released under the AGPL, meaning that if you host the bot
-for other people to use, you must make sure that the links to the source code
-given by the !help command remain intact.  In particular, this means IF YOU MAKE
-CHANGES TO THE SOFTWARE, YOU MUST HOST THE CODE SOMEWHERE AND UPDATE THE LINKS
-TO POINT TO IT.  This could be as simple as cloning the repo on Github and
-pushing your changes there.
+Note that Talon_Bot is released under the AGPL, meaning that if you host
+the bot for other people to use, you must make sure that the links to the
+source code given by the !license command remain intact.  In particular,
+this means IF YOU MAKE CHANGES TO THE SOFTWARE, YOU MUST HOST THE CODE
+SOMEWHERE AND UPDATE THE LINKS TO POINT TO IT.  This could be as simple
+as cloning the repo on Github and pushing your changes there.
