@@ -45,7 +45,12 @@ if ($args[0] eq 'save')  {BLOCK:{
 	
 	# Build the string that will get saved in DATA.
 	my $string = "tags:";
-	$string .= "$_," foreach (@{$$info{'tags'}});
+	foreach ( @{$$info{'tags'}} )  {
+		# Include at least some basic checking, to prevent terrible things
+		# if Twitch changes their restrictions later.
+		next unless /^\w+$/;
+		$string .= "$_,";
+		}
 	# Remove the last comma, if it exists.
 	$string =~ s/,$//;
 	# Add the remaining info.
@@ -83,7 +88,7 @@ elsif ($args[0] eq 'load')  {BLOCK:{
 	my @tags = split /,/, $tags;
 	# The old system stored long ids for tags.  Filter those out.
 	foreach (@tags)  {
-		push @{$hash{tags}}, $_ unless length $_ > 25;
+		push @{$$hash{tags}}, $_ unless /-/; # All hashes had dashes.
 		}
 	#$$hash{tags} = \@tags;
 	debug 1,$hash;
