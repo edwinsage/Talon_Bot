@@ -23,13 +23,9 @@ package Twitch;
 #     rather than a username.
 #   get_username($auth, $user_id) returns the display name for a given numerical
 #     user ID.
-#   get_tags($auth, $id) returns an array of the tag IDs associated with a
-#     given user ID.  Automatic tags, such as language, are not returned.
 #   get_channel_info($auth, $id) returns a hash reference of the information
 #     Twitch provides about a channel associated with a given user ID.
 # Manipulative (requires a user OAuth token):
-#   put_tags($auth, $id, @tags) takes a list of tag IDs and sets the stream
-#     description on Twitch to use those tags.
 #   put_channel_info($auth, $id, $hash) takes a hash reference containing stream
 #     attributes and sets them on Twitch.
 #
@@ -54,7 +50,7 @@ use strict;
 use v5.20;
 
 use HTTP::Tiny;
-use JSON 'decode_json';
+use JSON qw(decode_json encode_json);
 
 
 
@@ -116,58 +112,6 @@ sub get_username  {
 	}
 
 
-sub get_tags  {
-	my ($auth, $id) = @_;
-	my $res = &twitch_app_request($auth, 'GET', "https://api.twitch.tv/helix/streams/tags?broadcaster_id=$id");
-	
-	#print "$_: $$res{$_}\n" foreach keys %$res;
-	
-	unless ($$res{success})  {
-		warn 'Tags request failed.';
-		return;
-		}
-	
-	my @tags = split /}},\{/, $$res{content};
-	
-	my @output;
-	foreach (@tags)  {
-		# Skip auto tags
-		next if /"is_auto":true,/;
-		s/.*"tag_id":"([0-9a-f\-]+)".*/$1/;
-		push @output, $_;
-		}
-	
-	
-	return @output;
-	}
-
-
-sub put_tags  {
-	my ($auth, $id, @tags) = @_;
-	
-	unless (@tags)  {
-		warn "No tags given.";
-		return;
-		}
-	
-	# Build the content string.
-	my $content = qq|{"tag_ids":[|;
-	$content .= qq|"$_",| foreach @tags;
-	# Remove trailing comma (guaranteed to be there).
-	chop $content;
-	$content .= ']}';
-	
-	my $res = &twitch_user_request(
-	    $auth,
-	    'PUT',
-	    "https://api.twitch.tv/helix/streams/tags?broadcaster_id=$id",
-	    {"Content-Type" => 'application/json'},
-	    $content );
-	
-	
-	}
-
-
 sub get_channel_info  {
 	my ($auth, $id) = @_;
 	my $res = &twitch_app_request(
@@ -190,21 +134,9 @@ sub get_channel_info  {
 sub put_channel_info  {
 	my ($auth, $id, $hash) = @_;
 	
-	# Build the content string.
-	my $content = '{';
-	foreach (keys %$hash)  {
-		my ($key, $val) = ($_, $$hash{$_});
-		
-		# Properly escape the data (I hope).
-		$val =~ s/\\/\\\\/g;
-		$val =~ s/"/\\"/g;
-		
-		$content .= qq("$key":"$val",);
-		}
 	
-	# Remove the last comma, if it exists.
-	$content =~ s/,$//;
-	$content .= '}';
+	my $content = encode_json($hash);
+	#print $content;
 	
 	&twitch_user_request( 
 	    $auth,

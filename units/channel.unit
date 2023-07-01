@@ -41,12 +41,11 @@ if ($args[0] eq 'save')  {BLOCK:{
 	
 	# Get the information:
 	#   game_id, title, tags
-	my @tags = Twitch::get_tags($cfg, $DATA{channel_id});
 	my $info = Twitch::get_channel_info($cfg, $DATA{channel_id});
 	
 	# Build the string that will get saved in DATA.
 	my $string = "tags:";
-	$string .= "$_," foreach (@tags);
+	$string .= "$_," foreach (@{$$info{'tags'}});
 	# Remove the last comma, if it exists.
 	$string =~ s/,$//;
 	# Add the remaining info.
@@ -82,11 +81,14 @@ elsif ($args[0] eq 'load')  {BLOCK:{
 		}
 	
 	my @tags = split /,/, $tags;
+	# The old system stored long ids for tags.  Filter those out.
+	foreach (@tags)  {
+		push @{$hash{tags}}, $_ unless length $_ > 25;
+		}
+	#$$hash{tags} = \@tags;
+	debug 1,$hash;
 	
 	Twitch::put_channel_info($cfg, $DATA{channel_id}, $hash);
-	
-	Twitch::put_tags($cfg, $DATA{channel_id}, @tags);
-	
 	
 	
 	}}
